@@ -167,6 +167,15 @@ People review in it, and they catch what the sheets missed. GLTFLoader strips ".
 (`SOCKET_hand.R` arrives as `SOCKET_handR`, `DEF-upper_arm.L` as `DEF-upper_armL`); look nodes
 up by `userData.name` or document the mapping. Never rename the export for a loader.
 
+Two viewer traps:
+- A bind-pose button that resets the skeleton directly (`skeleton.pose()`) must stop the pose
+  action, not just disable it. An AnimationMixer writes a bone only when its value differs from
+  the mixer's own last update. A disabled-then-enabled action therefore leaves the bind pose on
+  screen after returning to a pose, with the weapons hanging off rest-pose hands.
+- Scripted before/after captures set the camera and then wait some frames: OrbitControls with
+  damping is still moving when a screenshot is taken at once, so the "same camera" frames
+  differently. Capture after and before with the same code.
+
 Manifest (asset-manifest.json, written by export_delivery.py): units and axes for authoring and
 export, target height, bounds, files per LOD with tri counts, materials, textures with colour
 spaces, texture contract and packing, skeleton with deform bone names and roots, sockets with

@@ -177,7 +177,11 @@ Hand sockets and grips (`assets/grasp_tools.py`):
   way"). The boss must hold the closed fist: measure the fist's forward envelope in the shield's
   frame (the knuckles of a fist round a 30 mm bar reach about 65 mm ahead of its axis) and keep
   the boss's inner surface about 5 mm beyond it. The aim still turns the hand and flexes the wrist
-  to keep the forearm and the rim apart, scored against the posed arm.
+  to keep the forearm and the rim apart, scored against the posed arm. With the knuckles into the
+  boss, the forearm's direction decides where the shield sits. An elbow bent 82 degrees held it
+  before the chest (grip at 1.33 m); the concept carries it at the hip. A nearly hanging upper arm
+  with the elbow at 55 degrees, the wrist extended by the aim search, put the grip at 1.14 m with the
+  face still on target. Compare the idle's shield height with the concept, not only its facing.
 - **Stowed gear.** Place SOCKET_back by ray casts: the stowed item's back must clear the cloak
   and body everywhere by about 10 mm, not at one point.
 

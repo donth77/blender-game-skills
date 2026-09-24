@@ -76,7 +76,10 @@ user's viewport disagree.
 - Match painted concept colours by numbers: sample the median sRGB of the same world-space box
   in the reference and in a render under the review lights, and adjust albedo until they agree.
   Grey-looking leather was specular sheen and edge-wear masks firing over whole thin straps, not
-  the base colour.
+  the base colour. The same mask baked a 4 mm leather cuff solid light tan, which read as bare skin
+  between a vambrace and a glove. Give thin shells a material whose wear ignores small curvature
+  (the glove's), and check the baked maps per part: the cuff also took metallic from the steel
+  plate under it, within the bake's ray distance.
 - Painted concept metal usually reads brown-lit: give glossy rays their own warm studio (Light
   Path "Is Glossy Ray" in the world shader) while diffuse rays keep a dark environment.
 - The Standard view transform keeps saturated skin and hair close to a painted sheet; AgX washes
