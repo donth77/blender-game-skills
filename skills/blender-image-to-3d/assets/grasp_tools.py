@@ -26,8 +26,8 @@ What each piece does and why:
   the result: a natural grip has the palm and every segment within about 6 mm. Forward kinematics
   from the pose bones' rest matrices, so no depsgraph update per candidate.
 - Surface.depth tests thin shells too: a glove point is inside when the line from its bone's axis
-  out to it crosses the surface. A finger pushed through a 2 mm shield boss ends up on its outer
-  side, where the nearest-surface sign alone reads it as clear.
+  out to it crosses the surface. A finger pushed through a 2 mm shell (a basket hilt, a
+  shield boss) ends up on its outer side, where the nearest-surface sign alone reads it as clear.
 - turn_hand / search / posed_body_tree / body_clearance: aim a held weapon by turning the hand
   about the forearm (pronation, supination), deviating and flexing the wrist, and rotating the
   humerus, scoring each candidate against the posed body's surface. A blade that is not aimed

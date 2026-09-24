@@ -349,10 +349,11 @@ Gate:
 Only for garments, chains, tails, wings, cables, tracks or antennae that the brief marked as
 simulated or secondary. Follow section 6 of `references/rigging-animation.md`: separate render,
 simulation and collision representations, pinned attachment areas with real clearance, one owner
-per vertex's motion, a bone-chain fallback. Stowed gear holds the cloth under it: a shield on the
-back pins the cloak's top segments (`grasp_tools.settle_chain`), and a cape posed back off the legs
-must not swing through it. Gate: posed renders in the extreme poses show no body or weapon
-penetration (`pose_overlap.py`), and the fallback chain alone still reads as the same garment.
+per vertex's motion, a bone-chain fallback. Stowed gear holds the cloth under it: a shield, pack
+or quiver on the back pins the cloak's top segments (`grasp_tools.settle_chain`), and a cape posed
+back off the legs must not swing through it. Gate: posed renders in the extreme poses show no body
+or weapon penetration (`pose_overlap.py`), and the fallback chain alone still reads as the same
+garment.
 
 ## Phase 8: animation
 

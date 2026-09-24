@@ -162,28 +162,31 @@ Hand sockets and grips (`assets/grasp_tools.py`):
   - Measure the result with `segment_gaps`: a natural grip has the palm and every segment within
     about 6 mm of the handle.
   - Test thin shells as well as solids: a glove point is inside when the line from its bone's axis
-    out to it crosses the weapon's surface. A finger pushed right through a 2 mm shield boss sits
-    on its outer side, where the nearest-surface sign alone reads it as clear, and the search
-    happily accepts it.
+    out to it crosses the weapon's surface. A finger pushed right through a 2 mm shell (a basket
+    hilt, a knuckle guard, a shield boss) sits on its outer side, where the nearest-surface sign
+    alone reads it as clear, and the search happily accepts it.
   - The weapon rides the hand socket, so the grip is the same in every pose: solve it once per
     hand and reuse the digit rotations.
 - **Aiming.** Aim each held weapon: turn the hand about the forearm (pronation and supination),
   deviate and flex the wrist, and rotate the humerus. Score each candidate against the posed body
   (`posed_body_tree`, `body_clearance`), not capsules. The hips, belt and pouches reach 0.20 m in
   front of the pelvis, and a fat capsule forbids the pose the concept shows.
-- **Centre-grip shields.** A punch into the boss: the fist closes round the handle with its
-  knuckles pointing into the boss, so the socket's face axis is the hand's length direction made
-  square to the handle, not the palm normal (a review called a palm facing the board "the wrong
-  way"). The boss must hold the closed fist: measure the fist's forward envelope in the shield's
-  frame (the knuckles of a fist round a 30 mm bar reach about 65 mm ahead of its axis) and keep
-  the boss's inner surface about 5 mm beyond it. The aim still turns the hand and flexes the wrist
-  to keep the forearm and the rim apart, scored against the posed arm. With the knuckles into the
-  boss, the forearm's direction decides where the shield sits. An elbow bent 82 degrees held it
-  before the chest (grip at 1.33 m); the concept carries it at the hip. A nearly hanging upper arm
-  with the elbow at 55 degrees, the wrist extended by the aim search, put the grip at 1.14 m with the
-  face still on target. Compare the idle's shield height with the concept, not only its facing.
-- **Stowed gear.** Place SOCKET_back by ray casts: the stowed item's back must clear the cloak
-  and body everywhere by about 10 mm, not at one point.
+- **Held props with a fixed grip** (a shield's handle, a lantern's bail, a torch, a staff): take
+  the socket's axes from how the object is used, not from the palm. A centre-grip shield, for
+  example, is held as a punch with the knuckles into the boss, so its face axis runs along the
+  hand's length (a palm facing the board read as "the wrong way" in a review). Anything that
+  encloses the hand (a boss, a basket hilt, a knuckle guard) must hold the closed fist: measure the
+  fist's envelope in the object's frame and keep its inner surface about 5 mm beyond it
+  (categories.md has the shield numbers).
+- **The arm that holds it.** When the concept shows only a pose, take the arm from a reference
+  clip of the same action (Mixamo, motion capture, video): with a fixed grip the forearm's
+  direction decides where the object sits and which way it faces. Keep the hand near its neutral
+  roll. Pronation or supination applied at the hand alone turns the wrist inside rigid forearm
+  armour (a 70-degree roll pushed a wrist through its vambrace); bend the elbow and shoulder
+  instead, or add a forearm twist bone that carries about half the roll. Then compare the held
+  object's height and facing with the concept.
+- **Stowed gear.** Place the back or hip socket by ray casts: the stowed item's back must clear
+  the cloak and body everywhere by about 10 mm, not at one point.
 
 Hinged parts pivot at the hinge. Bows need real string and nock motion. Shields need a grip
 orientation that works through every animation. A breath or projectile origin must agree with
@@ -257,11 +260,17 @@ Keep thickness and render subdivision from turning into self-collision noise. Se
 robe from the outer cape with real space and a stated collision policy. Full simulation is for a
 bounded number of nearby assets; everything else gets the bone fallback.
 
-Stowed gear holds the cloth under it. A shield strapped over a cloak pins the cloak's top
-segments, so a pose that swings the cape back off the legs must not carry it through the shield.
-`grasp_tools.settle_chain` turns each chain bone forward until its vertices clear the item, and
-passes the turn it gave up to the bone below. The cloth then folds under the rim and still clears
-the legs.
+Gear stowed over a garment holds the cloth under it. A shield, pack or quiver strapped over a
+cloak pins the cloak's top segments, so a pose that swings the cape back off the legs must not
+carry it through the item. `grasp_tools.settle_chain` turns each chain bone forward until its
+vertices clear the item, and passes the turn it gave up to the bone below. The cloth then folds
+under the item's edge and still clears the legs. Test against everything that stands off the
+item's back (rims, buckles, straps), not only its board or body.
+
+A bone chain cannot keep a cloak that hangs over the shoulders off an arm swung back into it, and
+with gear stowed over the cloak there is often nowhere for the chain to go. List those contacts
+for the runtime cloth or spring solver's arm capsules instead of bending the chain through
+something else.
 
 Draped garments at rest come from the cloth solver, not modelled tubes:
 - a pleated start shape above the collision copies, pinned where the garment is held;
