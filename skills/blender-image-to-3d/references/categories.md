@@ -139,15 +139,56 @@ Record its source and licence in `ref/` and in the manifest.
   turn half the joint's bend (rigging-animation.md section 1).
 - **Cloth at the neck.** Stacked scarf tubes read as fake. Drape cowls, scarves and hoods with
   Blender's cloth solver: a pleated tube pinned under the jaw falls onto collision copies of the
-  neck, gorget and pauldrons (the same builders at low detail). Pin the frame rate so the settle is
-  reproducible, and keep the settled shape as the rest mesh. Lift a cloak over the armour by ray
-  casts and check it with an overlap test: armour poking through a cape is the first thing seen
-  from behind.
+  neck, gorget, pauldrons and cloak (the same builders at low detail). Pin the frame rate so the
+  settle is reproducible, and keep the settled shape as the rest mesh. Then finish it
+  (`assets/cloth_tools.py`):
+  - Taubin-smooth it. The solver's small crumples read as crushed paper on the delivery mesh; a
+    plain Laplacian shrinks the cowl onto the neck.
+  - Put the clearances back after smoothing, each vertex along the nearest surface's own normal
+    so it keeps its side. Pushing everything "away from the body" drags cloth the solver tucked
+    inside a gorget's collar through the plate.
+  - Give steel a larger gap than soft layers, in the solver's collision thickness and in the
+    clearance pass (about 9 mm against 4 mm for a cowl with 18 mm faces). A face between two
+    clear vertices still cuts across a plate's rim when the gap is smaller than its sag over the
+    rim, and decimating the cloth for LOD0 makes it worse.
+  - Follow the reference's overlap order. The concept's collar lies over the cloak, whose top
+    rises into it: roll the collar out over the cloak where the solver left it under, eased over
+    the faces. A cloak lowered away from the collar reads as "floating, not connected".
+  - Do not clean up leftover intersections by pushing single vertices off whatever they touch in
+    a loop. Where the cloth is caught between two obstacles it oscillates and grows spikes.
+  - Review it with the cloth in its own colour: a triangle-pair count cannot tell a hidden tuck
+    from steel showing through.
+- **Cloaks and pauldrons.** Lift a cloak over the armour by ray casts and check it with an overlap
+  test: armour poking through a cape is the first thing seen from behind. When the reference hangs
+  it over one pauldron and under the other, lift it over the torso armour and the near pauldron
+  only. Then tuck it under the far pauldron's cap, lames and neck guard (a ray from inside the
+  cloth meeting one of its plates within the cloth's thickness plus the clearance), testing the
+  tuck where the lift left the cloth. A tuck tested on the unlifted surface misses the cloth that
+  the lift's easing pushed into the plate.
+- **Ornaments on cloth.** A brooch sits square to the cloth's averaged normal, with its back on
+  the highest folds under it, then slides out along that normal until it overlaps no armour. Put
+  it where the cloth is: a disc half off the cowl's hem reads as floating on the breastplate.
 - **Belts and hanging gear.** Build each piece so it is held:
   - buckles as open frames with a prong lying on the strap;
   - pouches hung from the belt by loops, with flaps and studs;
   - a scabbard hung by straps or hangers from the belt. A block "frog" reads as a brown rectangle
     holding a sword.
+
+  The sheathed weapon is checked the way the engine shows it: the weapon asset attached to the
+  hip socket, at the bind pose.
+  - Put the hilt on the blade's centre line at the guard, so the grip rises from the middle of the
+    scabbard's mouth. A single-edged blade with the grip on its spine line looks off centre.
+  - Start the scabbard just below the guard and its block, which rest on the throat. The guard
+    and block inside the scabbard's mouth read as the sword clipping through it.
+  - Close the mouth with a slotted throat plate the blade passes through. A capped mouth cuts
+    the blade, and an open one shows a hole.
+  - Rivet each hanger flat on the belt's face and run it down over the belt's edge. A loop round
+    the belt passes through tassets hung behind it.
+  - Land each hanger on the side of its fitting that faces the belt, tangent to a leather loop
+    round the fitting. A curved blade's spine can face away from the belt, and a strap to the spine
+    crosses the scabbard and the blade inside it.
+
+  At rest the sheathed weapon and the whole scabbard assembly intersect nothing.
 
   Check contact with `validate.py --attachments`. For hanging gear, make the declared holder the
   exact part that carries it. A pouch that touches the skirt behind it is still floating off its
@@ -160,7 +201,7 @@ Realism checklist for the close-up review (SKILL.md gate protocol step 4):
 - **Hair and beard:** volume at the hairline and jaw; no painted-flat scalp, bald band or combed
   streaks at the crown.
 - **Hands:** finger lengths and joints; knuckles; glove thickness. A grip closes round the handle
-  with the thumb over the fingers.
+  with every phalanx on it, not only the fingertips, and the thumb over the fingers.
 - **Feet:** length about 15 percent of height; a last shape; sole, heel and toe spring; the
   foot on the ground.
 - **Knees and elbows:** shaped cops, no domes; nothing clipping at full bend.
@@ -168,7 +209,8 @@ Realism checklist for the close-up review (SKILL.md gate protocol step 4):
 - **Attachments:** nothing hovering; every strap, buckle, pouch, handle and hanger touches its
   holder.
 - **Weapons:** in the hand in every pose; clear of the body, scabbard and ground; stowed gear
-  resting on what carries it.
+  resting on what carries it; sheathed, the hilt centred on the scabbard's mouth with the guard
+  resting on the throat.
 
 Topology (LOW): continuous loops around eyes, mouth, shoulders, elbows, wrists, hips, knees and
 ankles; three or more segments on each side of a bending joint; no long thin triangles or high
@@ -332,9 +374,14 @@ the hand origin.
 
 Shields:
 - **Centre grip.** A round shield with a boss has a hand hole under the boss and the handle
-  riveted across it on the back. The palm faces the board and the fingers close into the boss, so
-  the socket's face direction is the palm's normal. The back of the hand facing the board is
-  impossible, and it hides a handle floating in space.
+  riveted across it on the back. The hand grips it as a punch into the boss: the fist round the
+  handle, the knuckles into the boss, so the socket's face direction is the hand's length square
+  to the handle (rigging-animation.md section 4). A palm facing the board is wrong, and so is a
+  handle floating off the board.
+- **The boss.** It has to hold the closed fist. The knuckles of a fist round a 30 mm bar reach
+  about 65 mm ahead of its axis, so a boss 40 mm proud of the face pushed the fingers straight
+  through it. Keep its inner surface about 5 mm beyond the fist's measured envelope (about 55 mm
+  proud on a 0.75 m shield), and model it as a shell over the hand hole.
 - **Strapped shields.** They carry an arm strap (enarmes) and a grip near the rim instead.
 - **The dome.** A domed board curls its rim back towards the bearer. Keep the dome shallow (4 to 6
   cm on a 0.75 m shield), so the forearm lying behind a centre grip clears the rim.

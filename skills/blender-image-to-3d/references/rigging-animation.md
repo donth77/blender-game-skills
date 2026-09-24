@@ -142,26 +142,42 @@ empty at the hand origin proves nothing.
 
 Hand sockets and grips (`assets/grasp_tools.py`):
 - **The seat.** Place the hand socket where the handle rests in the open hand (`grip_seat`):
-  - diagonally across the palm, index end distal (a power grip; about 16 degrees for a sword,
-    less for a shield handle);
-  - crossing the index finger's line 15 to 20 mm below its knuckle;
+  - diagonally across the palm, index end distal (a power grip; 5 to 15 degrees);
+  - crossing the index finger's line about 8 mm below its knuckle, at the base of the fingers (a
+    sword is held in the fingers, not deep in the palm);
   - lowered onto the glove (palm and straight fingers) until it touches.
 
   A socket placed at a point in front of a fist puts the handle under the finger bases, and every
-  finger hooks instead of wrapping.
-- **The grasp.** In each posed frame, close the fingers on the weapon's own mesh (`grasp`):
-  - Each finger takes as much flexion as it can with no glove vertex inside the weapon.
-  - The MCP and PIP stay in proportion, with the DIP coupled to the PIP.
+  finger hooks instead of wrapping. With the handle 20 mm down in the palm, even a knuckle bent to
+  its limit left the proximal phalanges 10 to 24 mm off the grip. Sweep the seat's depth and
+  diagonal with `segment_gaps` and keep the one that puts every phalanx on the handle.
+- **The grasp.** Close the fingers on the weapon's own mesh (`grasp`), each with every phalanx on
+  the handle (`wrap_finger`):
+  - Search the MCP and PIP together (the DIP follows the PIP) for the least sum of the three
+    segments' gaps, with no glove point inside the weapon.
   - The thumb then closes over the curled index finger.
-  - It is a search, not a path: a coupled curl that stops at first contact stops fingertips on the
-    wrong surface.
+  - Do not close every joint in one fixed proportion until the first contact: that stops at the
+    fingertip and leaves the base segments standing off the handle in a loop, which reads as
+    "fingers curled, smashed against the handle, not around it".
+  - Measure the result with `segment_gaps`: a natural grip has the palm and every segment within
+    about 6 mm of the handle.
+  - Test thin shells as well as solids: a glove point is inside when the line from its bone's axis
+    out to it crosses the weapon's surface. A finger pushed right through a 2 mm shield boss sits
+    on its outer side, where the nearest-surface sign alone reads it as clear, and the search
+    happily accepts it.
+  - The weapon rides the hand socket, so the grip is the same in every pose: solve it once per
+    hand and reuse the digit rotations.
 - **Aiming.** Aim each held weapon: turn the hand about the forearm (pronation and supination),
   deviate and flex the wrist, and rotate the humerus. Score each candidate against the posed body
   (`posed_body_tree`, `body_clearance`), not capsules. The hips, belt and pouches reach 0.20 m in
   front of the pelvis, and a fat capsule forbids the pose the concept shows.
-- **Centre-grip shields.** The palm faces the board: the socket's face axis is the palm normal,
-  and the fingers close into the boss. The forearm lies nearly parallel to the board, so the aim
-  also flexes the wrist to tip the forearm away from the rim, and scores against the posed arm.
+- **Centre-grip shields.** A punch into the boss: the fist closes round the handle with its
+  knuckles pointing into the boss, so the socket's face axis is the hand's length direction made
+  square to the handle, not the palm normal (a review called a palm facing the board "the wrong
+  way"). The boss must hold the closed fist: measure the fist's forward envelope in the shield's
+  frame (the knuckles of a fist round a 30 mm bar reach about 65 mm ahead of its axis) and keep
+  the boss's inner surface about 5 mm beyond it. The aim still turns the hand and flexes the wrist
+  to keep the forearm and the rim apart, scored against the posed arm.
 - **Stowed gear.** Place SOCKET_back by ray casts: the stowed item's back must clear the cloak
   and body everywhere by about 10 mm, not at one point.
 

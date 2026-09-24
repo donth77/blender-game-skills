@@ -235,10 +235,15 @@ need them to rerun a gate yourself or to work without an agent.
 `assets/build_template.py` is the template for the per-phase build scripts. Each copy opens the
 master file, deletes the objects it owns, rebuilds them and saves, so any phase can be rerun.
 `assets/grasp_tools.py` holds the hand tools for the rig and pose test:
-- the grip seat (where a handle rests in the open hand);
-- the contact grasp (every finger closed on the weapon's mesh, the thumb over them);
+- the grip seat (where a handle rests in the open hand, at the base of the fingers);
+- the grasp (every phalanx wrapped onto the weapon's mesh, the thumb over them) and a per-segment
+  gap report;
 - weapon aiming against the posed body;
 - the cloth settle under stowed gear.
+
+`assets/cloth_tools.py` finishes draped cloth after the cloth solver: shrink-free smoothing,
+clearances that keep each vertex on its own side of the armour, a collar rolled over a cloak's top,
+and rigid ornaments seated on the cloth.
 
 Every script prints its options with `--help`. For the Blender scripts, put it after the `--`
 separator: `blender --background --python scripts/validate.py -- --help`.
@@ -292,7 +297,8 @@ every mismatch is inside the phase tolerance.
         |-- scripts/                 # the scripts above
         |-- references/              # categories, delivery and acceptance, rigging and
         |                            # animation, Blender 5 notes
-        |-- assets/build_template.py # template for the per-phase build scripts
+        |-- assets/                  # build_template.py (per-phase build scripts),
+        |                            # grasp_tools.py (hands), cloth_tools.py (draped cloth)
         `-- evals/evals.json         # test prompts for evaluating the skill
 ```
 

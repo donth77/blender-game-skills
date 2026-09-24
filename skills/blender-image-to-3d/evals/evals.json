@@ -43,6 +43,15 @@
         "ref/knight_front.png",
         "ref/knight_side.png"
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "Second look at the knight in the viewer. The sword in his right hand still doesn't look gripped: the fingers are curled and smashed against the handle, not wrapped round it. The shield hand has the palm facing the wrong way. In the bind pose the sheathed sword is off centre and clips through the scabbard. The cape clips through the shoulder plates, its back floats below the cowl instead of joining it, the brooch floats on the breastplate, and I can see a ghost ear in the face texture and nostrils on the side of the nose.",
+      "expected_output": "per-segment gap measurements for both hands before and after (palm and every phalanx within about 6 mm of the handle), from a grip seat at the base of the fingers and a wrap search over the knuckle and middle joints; the centre-grip shield held as a punch into the boss with the boss deep enough for the closed fist, fingers tested against thin shells; the sheathed weapon attached at the hip socket in the bind pose with the hilt centred on the blade, the scabbard's mouth below the guard behind a slotted throat, hangers riveted on the belt and landing on the side facing it, and zero intersections at rest; the simulated cowl smoothed and cleared with steel and soft gaps, lying over the cloak's top as the concept shows, the cloak tucked under one pauldron and over the other with no cloak-pauldron pairs; the brooch seated on the cowl; texture fixes for the duplicated ear and side nostrils; before/after viewer captures from the same cameras",
+      "files": [
+        "ref/knight_front.png",
+        "ref/knight_side.png"
+      ]
     }
   ]
 }

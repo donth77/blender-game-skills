@@ -13,16 +13,21 @@ scripts and import it (it only needs bpy and mathutils):
 
 What each piece does and why:
 - grip_seat: where the handle lies when the open hand holds it: an axis diagonal across the palm
-  (index end distal: a power grip), crossing the index finger's line a little below its knuckle
-  (the proximal phalanx must close over it), lowered onto the glove (palm and straight fingers)
-  until it rests there. A socket placed by eye (a point "in front of the fist") puts the handle
-  under the finger bases, and every finger then hooks instead of wrapping.
-- grasp: each finger closes as far as it can without a glove vertex entering the weapon's mesh
-  (a gripping hand closes until it is stopped), with the MCP and PIP in a natural proportion and
-  the DIP coupled to the PIP; the thumb then closes over the curled index finger. It is a search
-  over joint angles, not a path: a coupled curl that stops at first contact sweeps the fingertips
-  wide and stops them on the wrong surface (a shield board beside the hand hole). Forward
-  kinematics from the pose bones' rest matrices, so no depsgraph update per candidate.
+  (index end distal: a power grip), crossing the index finger's line about 8 mm below its knuckle
+  (at the base of the fingers: a sword is held in the fingers, not deep in the palm), lowered onto
+  the glove (palm and straight fingers) until it rests there. 20 mm down, even a knuckle bent to
+  its limit left the proximal phalanges 10 to 24 mm off the grip; a socket placed by eye (a point
+  "in front of the fist") puts the handle under the finger bases, and every finger hooks.
+- grasp: each finger wraps the handle with every phalanx on it (wrap_finger: the MCP and PIP
+  searched together, the DIP following the PIP, least sum of the three segments' gaps with none
+  inside the weapon); the thumb then closes over the curled index finger. Closing all joints in
+  one fixed proportion until the first contact stops at the fingertip and leaves the base segments
+  standing off the handle in a loop ("fingers smashed against the handle"). segment_gaps reports
+  the result: a natural grip has the palm and every segment within about 6 mm. Forward kinematics
+  from the pose bones' rest matrices, so no depsgraph update per candidate.
+- Surface.depth tests thin shells too: a glove point is inside when the line from its bone's axis
+  out to it crosses the surface. A finger pushed through a 2 mm shield boss ends up on its outer
+  side, where the nearest-surface sign alone reads it as clear.
 - turn_hand / search / posed_body_tree / body_clearance: aim a held weapon by turning the hand
   about the forearm (pronation, supination), deviating and flexing the wrist, and rotating the
   humerus, scoring each candidate against the posed body's surface. A blade that is not aimed
@@ -45,6 +50,9 @@ GRIP_GAP = 0.0008                    # the glove stops this far off the weapon
 FINGER_LIMIT = (90.0, 105.0, 80.0)   # MCP, PIP, DIP flexion (degrees)
 DIP_PER_PIP = 0.75                   # the DIP follows the PIP (the tendons couple them)
 FIST = (75.0, 90.0)                  # a finger that meets nothing closes towards this loose fist
+WRAP_DIP = 0.6                       # DIP : PIP of a finger wrapped round a handle
+WRAP_REWARD = 1e-4                   # m of summed gap worth one degree more wrap (a tie-breaker)
+SNUG = 0.03                          # a segment farther than this off the handle counts as this far
 FINGER_R = 0.0085                    # a finger as a capsule, for the thumb's clearance
 RELAX = {"index": (8, 14, 8), "middle": (12, 20, 10), "ring": (16, 26, 12), "pinky": (20, 30, 14),
          "thumb": (6, 10, 8)}        # a free hand at rest, more curled towards the little finger
@@ -67,13 +75,14 @@ def hand_frame_from_bone(arm, hand_bone, palm_sign=-1.0):
     return across, palm, along
 
 
-def grip_seat(body, group, frame, wrist, index_mcp, middle_mcp, half, box=False, diag=16.0, below=0.018,
+def grip_seat(body, group, frame, wrist, index_mcp, middle_mcp, half, box=False, diag=6.0, below=0.008,
               shift=0.008, gap=0.001, half_len=0.055, tilt=6):
     """Rest-pose handle axis in the open hand. frame = (across towards the little finger, palm
     normal, along) as unit Vectors; wrist, index_mcp, middle_mcp world points; half = the handle's
     half extents (towards the palm, towards the fingertips); box for a rectangular handle, else an
-    oval. diag: degrees across the palm (index end distal); below: how far under the index knuckle
-    the axis crosses the index finger's line; shift: the handle's centre moved from the middle
+    oval. diag: degrees across the palm (index end distal; 5 to 15 read as natural); below: how far
+    under the index knuckle the axis crosses the index finger's line (sweep it with segment_gaps:
+    the grip that leaves every phalanx on the handle wins); shift: the handle's centre moved from the middle
     finger towards the index end (the curled fingers lean that way). Returns (origin, unit axis
     towards the index end, unit palm direction orthogonal to it)."""
     c, p, a = frame
@@ -161,13 +170,27 @@ class Surface:
         self.inv = ob.matrix_world.inverted()
         self.reach = reach
 
-    def depth(self, pts):
+    def depth(self, pts, axis=None):
+        """Smallest signed distance of pts to the surface. With axis (a posed bone's head and tail,
+        world space) a point also counts as inside when the line from the bone's axis out to it
+        crosses the surface: past a thin shell, the nearest-surface sign reads it as clear."""
         best = 1.0
+        if axis is not None:
+            a0, a1 = self.inv @ axis[0], self.inv @ axis[1]
+            da = a1 - a0
         for q in pts:
             q = self.inv @ q
             loc, n, i, d = self.tree.find_nearest(q, self.reach)
             if loc is not None:
                 best = min(best, d if (q - loc).dot(n) >= 0 else -d)
+            if axis is not None:
+                c = a0 + da * max(0.0, min(1.0, (q - a0).dot(da) / max(da.length_squared, 1e-12)))
+                v = q - c
+                L = v.length
+                if L > 1e-6:
+                    hit = self.tree.ray_cast(c, v / L, L)
+                    if hit[0] is not None:
+                        best = min(best, -(L - hit[3]))
         return best
 
 
@@ -178,12 +201,15 @@ def seg_dist(q, a, b):
 
 
 def seg_depths(arm, names, mats, samples, surface, capsules=()):
+    """Per segment of a posed chain: the smallest signed distance of its glove samples to the weapon
+    (thin shells included) and to the capsules (a, b, radius) of fingers already placed."""
     M0 = arm.matrix_world
     out = []
     for n, m in zip(names, mats):
-        T = M0 @ m @ arm.data.bones[n].matrix_local.inverted()
+        b = arm.data.bones[n]
+        T = M0 @ m @ b.matrix_local.inverted()
         pts = [T @ v for v in samples.get(n, ())]
-        d = surface.depth(pts)
+        d = surface.depth(pts, (T @ b.head_local, T @ b.tail_local))
         for a, b, r in capsules:
             d = min(d, min(seg_dist(q, a, b) for q in pts) - r)
         out.append(d)
@@ -215,17 +241,41 @@ def best_of(cands, evaluate):
     return best[1] if best else least[1]
 
 
-def solve_finger(arm, names, sg, surface, samples):
-    def evaluate(c):
-        d = seg_depths(arm, names, chain_mats(arm, names, [rx(sg * t) for t in c]), samples, surface)
-        cost = -(min(c[0], FIST[0]) + min(c[1], FIST[1]) + 0.5 * min(c[2], FIST[1] * DIP_PER_PIP)) \
-            + 0.3 * abs(c[0] - 0.8 * c[1])
-        return min(d) - GRIP_GAP, cost
+def wrap_finger(arm, names, sg, surface, samples):
+    """(MCP, PIP, DIP) of a finger wrapped round the handle: each of its three segments as close to
+    the handle as it gets with none inside it (least sum of the segments' gaps), the DIP following
+    the PIP, a little more wrap preferred on a tie."""
     L1, L2, L3 = FINGER_LIMIT
-    c = best_of([(t1, t2, min(L3, t2 * DIP_PER_PIP)) for t1 in range(0, int(L1) + 1, 6)
-                 for t2 in range(0, int(L2) + 1, 6)], evaluate)
-    return best_of([(min(L1, max(0, c[0] + i)), min(L2, max(0, c[1] + j)), min(L3, max(0, c[2] + k)))
-                    for i in (-4, -2, 0, 2, 4) for j in (-4, -2, 0, 2, 4) for k in (-12, -6, 0, 6, 12)], evaluate)
+
+    def angles(c):
+        return (c[0], c[1], min(L3, c[1] * WRAP_DIP))
+
+    def evaluate(c):
+        d = seg_depths(arm, names, chain_mats(arm, names, [rx(sg * a) for a in angles(c)]), samples, surface)
+        return min(d) - GRIP_GAP, sum(min(SNUG, max(0.0, x - GRIP_GAP)) for x in d) - WRAP_REWARD * (c[0] + c[1])
+    c = best_of([(a, b) for a in range(0, int(L1) + 1, 5) for b in range(0, int(L2) + 1, 5)], evaluate)
+    c = best_of([(min(L1, max(0, c[0] + i)), min(L2, max(0, c[1] + j))) for i in range(-4, 5)
+                 for j in range(-4, 5)], evaluate)
+    return angles(c)
+
+
+def segment_gaps(arm, weapon, body, group, side, fmt="DEF-{f}_{k:02d}.{s}", fingers=FINGERS, thumb="thumb",
+                 hand_fmt="DEF-hand.{s}"):
+    """How the posed hand sits on the weapon: {bone: gap in m} for the palm and every phalanx (the
+    closest glove sample of each). A natural grip has all of them within about 6 mm; a base
+    segment 10 to 25 mm off means the fingers loop round empty space."""
+    bpy.context.view_layer.update()
+    surface = Surface(weapon)
+    samples = digit_samples(arm, body, group)
+    M0 = arm.matrix_world
+    out = {}
+    for n in [hand_fmt.format(s=side)] + [bone_name(fmt, f, k, side) for f in list(fingers) + [thumb] for k in (1, 2, 3)]:
+        if n not in samples:
+            continue
+        pb = arm.pose.bones[n]
+        T = M0 @ pb.matrix @ arm.data.bones[n].matrix_local.inverted()
+        out[n] = surface.depth([T @ v for v in samples[n]])
+    return out
 
 
 def solve_thumb(arm, names, surface, samples, caps, target):
@@ -256,9 +306,10 @@ def set_chain(arm, names, rots):
 
 
 def grasp(arm, side, weapon, body, group, grip_axis, fmt="DEF-{f}_{k:02d}.{s}", fingers=FINGERS, thumb="thumb"):
-    """Close the hand on the weapon: every finger wraps it (solve_finger), then the thumb closes
+    """Close the hand on the weapon: every finger wraps it (wrap_finger), then the thumb closes
     over the curled index finger. grip_axis: the handle's world direction in this pose (the hand
-    socket's axis). Returns the flexion per digit."""
+    socket's axis). The weapon rides the hand socket, so the result is the same in every pose:
+    solve once per hand and reuse the digit rotations. Returns the flexion per digit."""
     bpy.context.view_layer.update()
     surface = Surface(weapon)
     samples = digit_samples(arm, body, group)
@@ -267,7 +318,7 @@ def grasp(arm, side, weapon, body, group, grip_axis, fmt="DEF-{f}_{k:02d}.{s}", 
     for f in fingers:
         names = [bone_name(fmt, f, k, side) for k in (1, 2, 3)]
         sg = flex_sign(arm, names, centre)
-        c = solve_finger(arm, names, sg, surface, samples)
+        c = wrap_finger(arm, names, sg, surface, samples)
         set_chain(arm, names, [rx(sg * t) for t in c])
         report[f] = c
     M0 = arm.matrix_world

@@ -34,7 +34,9 @@ as inferred. Say so when a single image forces inference; do not present a guess
 - All modelling is written as bpy code in `<asset>/build/NN_<phase>.py`, copied from
   `assets/build_template.py`. Each script opens the master, deletes what it owns, rebuilds it,
   saves. Rerunning any phase is safe. Constants are measured metres with a comment naming the
-  reference view they came from, or `# inferred`.
+  reference view they came from, or `# inferred`. After a scripted edit to a table of stations or
+  constants, check its row count. One replacement lost a newline, turned two cape stations into a
+  comment, and put the cloak's edge through a pauldron.
 - Skill scripts (all take `-- --help`):
 
 | Script | Purpose |
@@ -50,8 +52,10 @@ as inferred. Say so when a single image forces inference; do not present a guess
 | `scripts/roundtrip.py` | imports the export into a blank Blender, reports what arrived, renders a check |
 
 `assets/grasp_tools.py` holds the hand tools for Phase 6: the grip seat (where a handle rests in
-the open hand), the contact grasp (fingers closed on the weapon's mesh), weapon aiming against the
-posed body, and the cloth settle under stowed gear.
+the open hand), the grasp (every phalanx wrapped onto the weapon's mesh, with a per-segment gap
+report), weapon aiming against the posed body, and the cloth settle under stowed gear.
+`assets/cloth_tools.py` finishes draped cloth: shrink-free smoothing, clearances that keep each
+vertex on its side, a collar rolled over a cloak, and ornaments seated on the cloth.
 
 Read `references/categories.md` for the asset's category before Phase 0. Read
 `references/rigging-animation.md` before Phase 6 and `references/delivery-and-acceptance.md`
@@ -318,9 +322,11 @@ to one bone. Apply scale and rotation before binding; never apply an Armature mo
 cleanup.
 
 Hands that hold things, with the tools in `assets/grasp_tools.py`:
-- Seat each hand socket where the handle rests in the open hand (`grip_seat`), not at a point
-  guessed in front of a fist.
-- In every posed frame, close the fingers on the weapon's own mesh (`grasp`).
+- Seat each hand socket where the handle rests in the open hand, at the base of the fingers
+  (`grip_seat`), not at a point guessed in front of a fist.
+- Wrap every finger onto the weapon's own mesh with each phalanx on it (`grasp`), and check the
+  palm and every segment sit within about 6 mm of the handle (`segment_gaps`). Fingertips alone
+  on the handle read as fingers smashed against it.
 - Aim each held weapon by turning the hand and forearm against the posed body (`turn_hand`,
   `search`, `posed_body_tree`), so a blade never crosses the legs, scabbard or cloak.
 
@@ -331,7 +337,8 @@ Gate:
 - The extreme-pose sheet (`review_render.py --action <pose_action> --frame N` for every pose the
   reference file lists), all separate parts visible together. It includes the concept's own stance
   (an idle holding what the concept holds) and every weapon state the game shows (in hand,
-  sheathed, stowed).
+  sheathed, stowed). Check the sheathed state as the engine shows it: the weapon asset attached to
+  its hip socket at the bind pose, intersecting nothing.
 - `scripts/pose_overlap.py` on the sheet's file: body pairs against the bind position, weapon and
   carried-gear pairs counted absolutely, no weapon pair except a glove on its own grip.
 - `validate.py` shows no unweighted or over-influenced vertices.
