@@ -1,0 +1,70 @@
+# OS and editor files
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments and local environment files
+.venv/
+venv/
+env/
+.env
+
+# Node (npx skills and other tooling)
+node_modules/
+
+# Logs
+*.log
+
+# Blender backup versions (.blend1, .blend2, ...) and interrupted saves
+*.blend[0-9]*
+*.blend@
+
+# Blender files made while testing. The skill ships none; use `git add -f` if one is ever needed.
+*.blend
+
+# Asset folders made while testing the skill in this repository
+# (prefixes from references/delivery-and-acceptance.md)
+/CH_*/
+/CR_*/
+/AR_*/
+/VH_*/
+/PR_*/
+/WP_*/
+/EN_*/
+
+# Render, review and export output made while testing
+/review/
+/renders/
+/render/
+/exports/
+/export/
+/textures/
+/frames/
+/output/
+/out/
+/tmp/
+/*.mp4
+
+# Reference images used while testing (often third-party art; do not publish by accident)
+/ref/
+
+# Local agent installs made while testing (for example `npx skills add . -a claude-code`)
+/.agents/
+/.claude/
+/skills-lock.json
+
+# skill-creator eval workspaces. <skill-name>-workspace/ sits next to the skill folder and can
+# hold a copy of SKILL.md that the skills CLI would discover as a duplicate skill.
+*-workspace/
