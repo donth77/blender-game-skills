@@ -10,7 +10,11 @@ only needs numpy, bpy and mathutils):
   V = C.roll_over(V, F, cloak_tree, axis_xy=(0.0, 0.02))     # the collar over the cloak's top
   V = C.taubin(V, F, iters=4, fixed=range(ring * 2))
   V = C.keep_clear(V, [...], rounds=3)
+  for _ in range(3):                                          # the collar's sides over the cloak's
+      V = C.lift_over_edge(V, F, cloak_tree, cloak_top_xz)    # top edge, not through it
+      V = C.keep_clear(V, [...])
   M = C.slide_clear(brooch_verts, brooch_polys, M, normal, armour_tree)   # a pinned ornament
+  C.settle_faces(cowl_object, [armour_tree, cloak_tree], away)            # delivered faces, last
 
 What each pass does and why:
 - taubin: the solver leaves small crumples that read as crushed paper on a delivery mesh. Taubin
@@ -28,6 +32,20 @@ What each pass does and why:
 - roll_over: the reference decides the overlap order. A collar that lies over the cloak (the
   cloak rising into it) is rolled out over the cloak's top where the solver left it underneath,
   the move eased over the faces so the cloth rolls over the edge instead of folding across it.
+- lift_over_edge: a closed collar (cowl, scarf, hood) over an open garment hanging behind it (a
+  cloak): the collar's back lies on the cloak, but its sides come round to the front of the neck,
+  and below the cloak's top edge that path runs through the cloak. Cloth that the solver started
+  behind the cloak stays there, and smoothing pulls the sides back through after roll_over. Lift
+  the cloth of every face that crosses the cloak, on its body side, above the cloak's top edge,
+  eased over the collar, so the sides rest on the edge. Lowering the cloak's top under them
+  instead turns the cloak into a bib and leaves the collar nothing to rest on.
+- settle_faces: the last word, for plates as well as cloth. Clearances hold at the vertices, but a
+  face between two of them can still cut a curved neighbour. Intersect the object's evaluated
+  surface (thickness and bevel included) with the neighbours and move the crossing faces' own
+  corner vertices a small step along a clearing direction until nothing crosses. Map faces to
+  vertices by their corners: a search radius smaller than a coarse LOD's faces finds no vertex and
+  the pass silently does nothing. Apply a LOD's decimation first; under a live Decimate modifier
+  the collapse pattern changes every round and the settle never converges.
 - Do not "resolve" leftover intersections by pushing single vertices off whatever they touch in a
   loop: where the cloth is caught between two obstacles (a pauldron's rim and the sleeve) it
   oscillates and grows spikes. Fix the gaps upstream instead.
@@ -140,3 +158,87 @@ def slide_clear(local_verts, polys, M, direction, tree, step=0.001, max_steps=40
             break
         M = Matrix.Translation(direction * step) @ M
     return M
+
+
+def lift_over_edge(V, F, tree, edge_xz, behind=Vector((0, 1, 0)), clear=0.010, ease=20, reach=0.12):
+    """Cloth faces that cross the garment in `tree` (a cloak hanging behind the collar) with their
+    vertices on its body side (a ray along `behind` meets it within `reach`) rise above its top
+    edge (edge_xz: (x, z) points along that edge) plus `clear`, the lift eased over the cloth."""
+    xs = np.array([p[0] for p in sorted(edge_xz)])
+    zs = np.array([p[1] for p in sorted(edge_xz)])
+    n = len(V)
+    need = np.zeros(n)
+    cloth = BVHTree.FromPolygons([Vector(tuple(v)) for v in V], [list(f) for f in F])
+    for a, _ in cloth.overlap(tree):                  # (cloth face, garment face)
+        for i in F[a]:
+            p = Vector(tuple(V[i]))
+            if not xs[0] <= p.x <= xs[-1] or tree.ray_cast(p, behind, reach)[0] is None:
+                continue
+            need[i] = max(need[i], float(np.interp(p.x, xs, zs)) + clear - p.z)
+    if not need.any():
+        return np.array(V, dtype=float)
+    nbl = neighbours(n, F)
+    disp = need.copy()
+    for _ in range(ease):
+        disp = np.array([max(need[i], 0.5 * disp[i] + 0.5 * np.mean([disp[j] for j in nbl[i]] or [0.0]))
+                         for i in range(n)])
+    out = np.array(V, dtype=float)
+    out[:, 2] += disp
+    return out
+
+
+def settle_faces(ob, trees, away, step=0.0008, iters=20, reach=0.013):
+    """Move ob's vertices near its crossings with the BVH trees `trees` a `step` along away(p) (a
+    world point to a unit direction) per round, eased over two rings of neighbours, until its
+    evaluated surface crosses none of them. Returns (rounds, crossings left)."""
+    import bpy
+    from mathutils.kdtree import KDTree
+    me = ob.data
+    mw, inv = ob.matrix_world, ob.matrix_world.inverted()
+    nbl = [[] for _ in me.vertices]
+    for e in me.edges:
+        a, b = e.vertices
+        nbl[a].append(b)
+        nbl[b].append(a)
+    top = bpy.context.scene.collection.objects
+    linked = ob.name not in bpy.context.view_layer.objects and ob.name not in top
+    if linked:                                        # an excluded collection is not evaluated
+        top.link(ob)
+    left = 0
+    try:
+        for rnd in range(iters):
+            dg = bpy.context.evaluated_depsgraph_get()
+            eo = ob.evaluated_get(dg)
+            em = eo.to_mesh()
+            ev = [mw @ v.co for v in em.vertices]
+            polys = [list(q.vertices) for q in em.polygons]
+            eo.to_mesh_clear()
+            mine = BVHTree.FromPolygons(ev, polys)
+            pairs = [pr for t in trees for pr in mine.overlap(t)]
+            left = len(pairs)
+            if not pairs:
+                return rnd, 0
+            kd = KDTree(len(me.vertices))
+            for v in me.vertices:
+                kd.insert(mw @ v.co, v.index)
+            kd.balance()
+            w = [0.0] * len(me.vertices)
+            for a in {a for a, _ in pairs}:
+                for k in polys[a]:                    # the face's own corners, then its neighbourhood
+                    _, i, dist = kd.find(ev[k])
+                    if i is not None and dist < 0.012:
+                        w[i] = 1.0
+                c = sum((ev[i] for i in polys[a]), Vector()) / len(polys[a])
+                for _, i, _ in kd.find_range(c, reach):
+                    w[i] = 1.0
+            for _ in range(2):
+                w = [max(w[i], 0.5 * max((w[j] for j in nbl[i]), default=0.0)) for i in range(len(w))]
+            for v in me.vertices:
+                if w[v.index]:
+                    p = mw @ v.co
+                    v.co = inv @ (p + away(p) * step * w[v.index])
+            me.update()
+    finally:
+        if linked:
+            top.unlink(ob)
+    return iters, left

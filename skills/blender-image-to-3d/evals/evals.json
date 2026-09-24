@@ -52,6 +52,15 @@
         "ref/knight_front.png",
         "ref/knight_side.png"
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "Third pass on the armoured character. The shoulder plates still clip at the bottom, and the left one looks taller than the right: make both like the right. The cape's top at the back needs a better shape and flow: I can see armour between the cape and the hood. Shouldn't the brooch join the cloak to the breastplate? The leg armour doesn't fit at the back of the legs, the skin behind the ear is a smudge, and there are dark spots on the side of the nose. The idle grip on the held item still looks wrong; I've put some Mixamo clips in ref/anim you can use for poses.",
+      "expected_output": "layered shoulder plates built inside out (lowest lame over the sleeve, the cap last), each lame a straight band hugging the layer beneath, trims seated on the fitted plates, and zero cap, lame and sleeve intersections at rest, with both sides built from one definition mirrored about each shoulder joint and the deviation from the concept recorded; the cloak raised along the shoulder line under a hood-like collar whose sides pass over the cloak's top edge, zero cloak-collar intersections; the collar drawn onto the breastplate at the brooch; the garment layer order at the legs checked from behind (trousers into boots, plates over them, straps over the plates); painted ear and nostril remnants repainted from donor regions with a feathered mask; the idle arm taken from a reference clip so the hand keeps a near-neutral roll, with no new intersection in the idle; LODs built from the finished high-detail cloth; before/after viewer captures from the same cameras",
+      "files": [
+        "ref/knight_front.png",
+        "ref/knight_side.png"
+      ]
     }
   ]
 }

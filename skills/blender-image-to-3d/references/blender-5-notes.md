@@ -36,6 +36,14 @@ user's viewport disagree.
 
 ## 2. Runtime and performance
 
+- An object in a collection excluded from the view layer (a working collection hidden between
+  phases) is not in the depsgraph: `evaluated_get` returns it without its modifiers, with no
+  error. Every BVH, fit or clearance test built from it silently loses the solidify thickness,
+  the bevel and any decimation: a cloak built there measured 8 mm thinner than the delivered one,
+  and a collar cleared against it cut the real cloak's outer face. Link such objects to the scene
+  collection while they are evaluated (`build_template.in_view_layer`), or un-exclude the
+  collection for the build.
+
 - Cycles on Apple Silicon: enable only the METAL device. Adding the CPU as a second device made
   frames about twice as slow (M-series Pro, 1080p, 48 to 64 samples with OpenImageDenoise ran at
   12 to 20 s per frame GPU-only).

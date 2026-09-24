@@ -35,6 +35,29 @@ def save_master(path):
     bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(path))
 
 
+from contextlib import contextmanager
+
+
+@contextmanager
+def in_view_layer(objs):
+    """An object in a collection excluded from the view layer (a working collection hidden between
+    phases) is not in the depsgraph: evaluated_get returns it without its modifiers (no solidify
+    thickness, no bevel, no decimation), silently. Link such objects to the scene collection while
+    they are evaluated."""
+    vl = bpy.context.view_layer
+    top = bpy.context.scene.collection.objects
+    linked = []
+    for ob in objs:
+        if ob is not None and ob.name not in vl.objects and ob.name not in top:
+            top.link(ob)
+            linked.append(ob)
+    try:
+        yield
+    finally:
+        for ob in linked:
+            top.unlink(ob)
+
+
 def col(name):
     c = bpy.data.collections.get(name)
     if c is None:
@@ -339,9 +362,10 @@ def decimate(ob, ratio):
 
 def apply_all_modifiers(ob):
     """Bake the modifier stack into the mesh without operators (safe in background)."""
-    dg = bpy.context.evaluated_depsgraph_get()
-    eo = ob.evaluated_get(dg)
-    me = bpy.data.meshes.new_from_object(eo)
+    with in_view_layer([ob]):
+        dg = bpy.context.evaluated_depsgraph_get()
+        eo = ob.evaluated_get(dg)
+        me = bpy.data.meshes.new_from_object(eo)
     old = ob.data
     name = old.name
     ob.data = me
@@ -373,19 +397,20 @@ def set_origin(ob, world_point):
 def join_meshes(name, objects, collection="LOW"):
     """Merge several mesh objects into one new object in world space. Sources are left alone."""
     bm = bmesh.new()
-    dg = bpy.context.evaluated_depsgraph_get()
-    for ob in objects:
-        eo = ob.evaluated_get(dg)
-        me = eo.to_mesh()
-        tmp = bmesh.new()
-        tmp.from_mesh(me)
-        bmesh.ops.transform(tmp, matrix=eo.matrix_world, verts=tmp.verts)
-        tmp_me = bpy.data.meshes.new("_tmp_join")
-        tmp.to_mesh(tmp_me)
-        tmp.free()
-        bm.from_mesh(tmp_me)
-        bpy.data.meshes.remove(tmp_me)
-        eo.to_mesh_clear()
+    with in_view_layer(objects):
+        dg = bpy.context.evaluated_depsgraph_get()
+        for ob in objects:
+            eo = ob.evaluated_get(dg)
+            me = eo.to_mesh()
+            tmp = bmesh.new()
+            tmp.from_mesh(me)
+            bmesh.ops.transform(tmp, matrix=eo.matrix_world, verts=tmp.verts)
+            tmp_me = bpy.data.meshes.new("_tmp_join")
+            tmp.to_mesh(tmp_me)
+            tmp.free()
+            bm.from_mesh(tmp_me)
+            bpy.data.meshes.remove(tmp_me)
+            eo.to_mesh_clear()
     return new_mesh_object(name, bm, collection)
 
 

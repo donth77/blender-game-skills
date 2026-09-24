@@ -242,8 +242,9 @@ master file, deletes the objects it owns, rebuilds them and saves, so any phase 
 - the cloth settle under stowed gear.
 
 `assets/cloth_tools.py` finishes draped cloth after the cloth solver: shrink-free smoothing,
-clearances that keep each vertex on its own side of the armour, a collar rolled over a cloak's top,
-and rigid ornaments seated on the cloth.
+clearances that keep each vertex on its own side of the armour, a collar rolled over a cloak's top
+with its sides lifted over the cloak's edge, rigid ornaments seated on the cloth, and a face-level
+overlap settle that works for layered plates too.
 
 Every script prints its options with `--help`. For the Blender scripts, put it after the `--`
 separator: `blender --background --python scripts/validate.py -- --help`.

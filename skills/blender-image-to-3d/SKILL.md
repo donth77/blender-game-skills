@@ -55,7 +55,8 @@ as inferred. Say so when a single image forces inference; do not present a guess
 the open hand), the grasp (every phalanx wrapped onto the weapon's mesh, with a per-segment gap
 report), weapon aiming against the posed body, and the cloth settle under stowed gear.
 `assets/cloth_tools.py` finishes draped cloth: shrink-free smoothing, clearances that keep each
-vertex on its side, a collar rolled over a cloak, and ornaments seated on the cloth.
+vertex on its side, a collar rolled over a cloak and its sides lifted over the cloak's top edge,
+ornaments seated on the cloth, and a face-level overlap settle for plates as well as cloth.
 
 Read `references/categories.md` for the asset's category before Phase 0. Read
 `references/rigging-animation.md` before Phase 6 and `references/delivery-and-acceptance.md`

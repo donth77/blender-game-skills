@@ -91,7 +91,10 @@ Techniques for faces, smooth analytic forms, hands, the neck join, armour over c
   then hug the leather whatever the limb shape, and outlines stay exact. Layer high collars and
   gorgets as body, undersuit up to the neckline, collar with a few mm of air around the neck,
   gorget resting on the shoulders over the collar base, then pauldrons. Check clearances with
-  mesh overlap tests, not by eye.
+  mesh overlap tests, not by eye. Check the layer order at every garment boundary from behind as
+  well as from the front (trousers tucked into boot shafts, greaves over the shafts, straps over
+  the greaves): a trouser leg drawn over a greave's edge made the leg armour read as ill-fitting
+  from behind.
 - Strand hair: give each class of hair its own collider. The envelope that keeps long hair
   outside the pauldrons is far too fat beside the neck and turns short face-framing locks into a
   sideways tuft. Shading: a Principled Hair BSDF fitted by colour models a dense hair volume, so
@@ -120,6 +123,14 @@ Record its source and licence in `ref/` and in the manifest.
   masked by the painted projection's hair colour; scale the mask smoothing with the mesh density,
   or dense levels groove. Project the painted back view on back-facing normals, and sample the
   crown from a clean top-down hair tile, not from the side view's edge.
+- **Painted features the mesh already has.** A painting projected onto a head brings along what
+  the geometry models separately: an ear painted on the side of the head shows as a ghost ear
+  behind the real one, and nostrils painted on the side of the nose show as dark spots. Paint them
+  out of the projection texture before baking. Fill each masked area from donor regions of the
+  right material (hair above and neck skin below for an ear, the nose's own skin for nostril
+  marks), feather the fill inward over about 10 px, and blend the donors across the gap. A
+  harmonic fill alone pulls in the background or the neighbouring feature's colour. Review the
+  head from the side and at three-quarters, not only from the front.
 - **Hands and gloves.** Map the base hand to the measured wrist and hand length in a local frame,
   mirroring the frame for the left hand. Read the finger joint chain from the mesh and put the
   finger bones on it. Put plates (the back of a gauntlet, the knuckle guard) a few mm off the glove,
@@ -137,6 +148,14 @@ Record its source and licence in `ref/` and in the manifest.
 
   They are not hemispheres: domes read as balls stuck on a flat knee. They ride helper bones that
   turn half the joint's bend (rigging-animation.md section 1).
+- **Layered plates.** Build a stack of plates (a pauldron's cap over its lames, lames over a
+  sleeve, tassets) inside out: the lowest plate fitted over the padding, each plate above fitted
+  over the ones already under it, the cover plate last. Fitting the cover to the padding first
+  leaves no room beneath it (two 4.5 mm lames need about 12 mm): the lames get squeezed into the
+  padding, which then shows through their lower edges. Shape each lame to the layer under it but
+  keep it a straight band down the limb (one straight radius profile per column), and seat edge
+  trims and rivets on the fitted plate by ray from its axis, not on the designed surface, or they
+  float and cut through. Finish with a face-level overlap settle (`cloth_tools.settle_faces`).
 - **Cloth at the neck.** Stacked scarf tubes read as fake. Drape cowls, scarves and hoods with
   Blender's cloth solver: a pleated tube pinned under the jaw falls onto collision copies of the
   neck, gorget, pauldrons and cloak (the same builders at low detail). Pin the frame rate so the
@@ -153,7 +172,17 @@ Record its source and licence in `ref/` and in the manifest.
     rim, and decimating the cloth for LOD0 makes it worse.
   - Follow the reference's overlap order. The concept's collar lies over the cloak, whose top
     rises into it: roll the collar out over the cloak where the solver left it under, eased over
-    the faces. A cloak lowered away from the collar reads as "floating, not connected".
+    the faces. A cloak lowered away from the collar reads as "floating, not connected", and a
+    cloak top cut straight across below the collar shows a band of armour between them: raise
+    the cloak along the shoulder line to the base of the neck under the collar.
+  - A hood lying on the back falls as one broad, rounded drape. Give the solver's start shape its
+    extra room and drop evenly across the back (a plateau over about 60 degrees either side), not
+    peaked at the centre, which falls as a tongue.
+  - A closed collar's sides come round to the front of the neck over an open cloak and must pass
+    over the cloak's top edge, not through it (`cloth_tools.lift_over_edge`, after smoothing).
+  - Simulate once. Build the LODs from the finished high-detail cloth, and give ornaments seated on
+    it the high-detail placement. A second solver run in a later phase settles a few mm
+    differently: a brooch seated on it moved 13 mm, and the bake projected cloth onto it.
   - Do not clean up leftover intersections by pushing single vertices off whatever they touch in
     a loop. Where the cloth is caught between two obstacles it oscillates and grows spikes.
   - Review it with the cloth in its own colour: a triangle-pair count cannot tell a hidden tuck
@@ -167,7 +196,9 @@ Record its source and licence in `ref/` and in the manifest.
   the lift's easing pushed into the plate.
 - **Ornaments on cloth.** A brooch sits square to the cloth's averaged normal, with its back on
   the highest folds under it, then slides out along that normal until it overlaps no armour. Put
-  it where the cloth is: a disc half off the cowl's hem reads as floating on the breastplate.
+  it where the cloth is: a disc half off the cowl's hem reads as floating on the breastplate. A
+  fastener joins what it fastens: draw the cloth onto the plate or the other garment at the pin
+  (a smooth falloff round the pin point) so the brooch visibly holds both.
 - **Belts and hanging gear.** Build each piece so it is held:
   - buckles as open frames with a prong lying on the strap;
   - pouches hung from the belt by loops, with flaps and studs;
