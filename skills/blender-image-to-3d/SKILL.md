@@ -20,8 +20,10 @@ as inferred. Say so when a single image forces inference; do not present a guess
 ## Runtime
 
 - Blender 4.2 or newer (used through 5.2), run headless: `blender --background --python <script> -- <args>`.
-  Blender 5.x changed several APIs these builds touch; `references/blender-5-notes.md` lists them
-  with runtime, baking and review lessons.
+  Blender exits 0 even when the script raises; add `--python-exit-code 1` wherever phases are
+  chained, or a failed phase lets the next one run on stale data. Blender 5.x changed several APIs
+  these builds touch; `references/blender-5-notes.md` lists them with runtime, baking and review
+  lessons.
   Resolve the binary once: `$BLENDER_BIN`, then `blender` on PATH, then
   `/Applications/Blender.app/Contents/MacOS/Blender`. Workbench renders need no GPU on macOS or
   Windows; on a headless Linux box without a GPU, pass `--engine cycles` to review_render.py.
@@ -41,10 +43,15 @@ as inferred. Say so when a single image forces inference; do not present a guess
 | `scripts/review_render.py` | clay / silhouette / wire / checker / material renders from fixed views, the reference-matched camera, gameplay pixel size, turntables, posed frames |
 | `scripts/compose_review.py` | compare sheet (reference, render, overlay, gameplay strip) plus silhouette IoU and width-profile numbers; plain Python with Pillow |
 | `scripts/world_gate.py` | world-registered silhouette IoU for orthographic reference views: the camera covers the reference matte's exact world window, so scale and placement errors count |
-| `scripts/validate.py` | topology, transforms, UVs, weights, armature, sockets, colliders, naming, tri budget; exit 1 on FAIL |
+| `scripts/validate.py` | topology, transforms, UVs, weights, armature, sockets, colliders, naming, tri budget, floating parts and declared attachments (`--attachments`); exit 1 on FAIL |
+| `scripts/pose_overlap.py` | interpenetration on the extreme-pose sheet: body pairs against the bind position, weapons and carried gear counted absolutely |
 | `scripts/bake_maps.py` | normal and AO from HIGH to LOW, base colour, roughness, metallic; rebuilds delivery materials |
 | `scripts/export_delivery.py` | GLB/FBX export with asset-manifest.json and animation-contract.json |
 | `scripts/roundtrip.py` | imports the export into a blank Blender, reports what arrived, renders a check |
+
+`assets/grasp_tools.py` holds the hand tools for Phase 6: the grip seat (where a handle rests in
+the open hand), the contact grasp (fingers closed on the weapon's mesh), weapon aiming against the
+posed body, and the cloth settle under stowed gear.
 
 Read `references/categories.md` for the asset's category before Phase 0. Read
 `references/rigging-animation.md` before Phase 6 and `references/delivery-and-acceptance.md`
@@ -67,7 +74,19 @@ before long renders and bakes.
 3. Write the mismatches as measurements, not adjectives: "head 12 percent too tall", "wheelbase
    0.3 m short", "band 4 width +0.06". Fix the constants in the build script, rerun the phase,
    re-render. Repeat until every mismatch is inside the phase tolerance.
-4. Show the user the compare sheet, the remaining deviations, and what was inferred. Continue on
+4. From Phase 3 on, also review close-ups. The silhouette and proportion numbers cannot see a
+   primitive face, folded ears, box hands, a slab boot, a buckle hovering off its belt or a sword
+   through the thigh. A character that passed every numeric gate failed its first close look on
+   all of these. Render the same fixed orthographic close-up cameras each time, in material mode:
+   - face (front, three-quarter, profile) and an ear;
+   - hands open and gripping;
+   - feet, knees and elbows;
+   - belt and hanging gear;
+   - the neckline and cape from behind.
+
+   Judge them with the realism checklist in `references/categories.md` section 2, and keep them as
+   a before/after sheet when a revision changes them.
+5. Show the user the compare sheet, the remaining deviations, and what was inferred. Continue on
    approval. If the user said not to ask, continue when the tolerance is met and keep the sheets
    in `review/` for them. If the user reviews in a live viewport, reload the master there after
    each rebuild: anything hidden only for rendering (a mannequin under the costume) still shows
@@ -94,7 +113,7 @@ SILHOUETTE the 3 to 5 features that make it read at gameplay size
 MATERIALS  per part: role (skin, scales, worn leather, painted metal, carved stone, glass), colour, roughness range, wear pattern
 ARTICULATION rig family, joints or pivots, sockets needed, animation needs (none / idle only / full library)
 INFERRED   every side, dimension or part the images do not show and the prior used to fill it
-TARGET     engine, export format, budget tier from the table, game camera (elevation, distance, lens), subject height in pixels at typical gameplay distance
+TARGET     engine, export format, budget tier from the table, game camera (elevation, distance, lens), subject height in pixels at typical gameplay distance, and the closest view it must survive (gameplay only, or close inspection in a viewer, cutscene or menu)
 ```
 
 Ask the user only for what the images cannot tell: target engine and format, real size when no
@@ -103,6 +122,17 @@ these defaults and proceed with them when the user says to just go: 1 unit = 1 m
 Blender with the subject facing -Y, GLB export, standard tier from the budgets table, a
 three-quarter overhead camera at 50 mm, 128 px subject height, rig only if the category deforms,
 no animation unless asked.
+
+When the closest view is a close inspection, or the user asks for realism, plan the anatomy
+that will be looked at from real forms:
+- faces, hands and feet built on anatomical base meshes (categories.md section 2);
+- cloth that hangs as cloth;
+- attachments that touch what holds them;
+- the budget tier that affords them.
+
+Measure painted exaggerations against real anatomy (feet about 15 percent of height, hands about
+11 percent). When a painted boot is a third longer than a real one, build the real one and record
+the deviation; the silhouette gate will show it, and the brief should say why.
 
 Keep every reference as a file in `<asset>/ref/` under a descriptive name before Phase 1: the
 scripts load references from disk, and images pasted into the conversation arrive as temporary
@@ -195,10 +225,19 @@ articulation; consolidate only the export copy.
 Keep the complete underlying body or hull in the master even where a costume or panel covers it;
 author coverage cuts on the export copy and test every equipment combination for holes.
 
-Characters: `references/categories.md` section 2 covers faces fitted to calibrated blueprints,
-hands, the neck join, armour fitted to the garment underneath, and strand hair colliders and
-shading. Review close-ups of the neck, hands and every armour overlap from several angles with
-everything the viewport shows; check clearances with mesh overlap tests.
+Characters: `references/categories.md` section 2 covers:
+- faces and hands fitted from anatomical base meshes;
+- boots on a real last, and joint armour;
+- cloth draped by the solver;
+- belts and hanging gear;
+- the neck join, armour fitted to the garment underneath, and strand hair colliders and shading.
+
+Review close-ups of the neck, hands and every armour overlap from several angles with everything
+the viewport shows. Check clearances with mesh overlap tests.
+
+Everything attached must touch what holds it: a buckle on its strap, a pouch on its belt loop, a
+scabbard on its hangers, a shield's handle on its board. `validate.py --attachments` takes the
+brief's "attaches to" column as a JSON map and reports every part that hovers.
 
 Gate: clay from the reference camera and all fixed views, forms tolerance, plus a `--turntable 8`
 clay pass. The silhouette at gameplay size must still match Phase 2; if forms shifted it, fix the
@@ -221,12 +260,21 @@ overlapping interior shells. Open boundaries are fine on cloth sheets, hair card
 collision proxies must be closed. Build LOD1 and LOD2 now with `lod_copy` and fix their outlines
 by hand, keeping head, shoulder, weapon, wheel and doorway silhouettes.
 
-Gate: `validate.py` with the budget tier's tri count (exit 0, warnings explained), wire mode
-render of LOW, and a clay compare against Phase 3 renders showing no silhouette loss.
+Gate: `validate.py` with the budget tier's tri count and `--attachments` (exit 0, warnings
+explained, no floating parts), wire mode render of LOW, and a clay compare against Phase 3
+renders showing no silhouette loss.
 
 ```bash
 $BLENDER_BIN --background --python scripts/validate.py -- --blend CH_Knight/CH_Knight_master.blend \
-  --collections LOW,COLLISION,SOCKETS --out CH_Knight/review/04_validate.json --budget-tris 60000 --require-uv
+  --collections LOW,COLLISION,SOCKETS --out CH_Knight/review/04_validate.json --budget-tris 60000 --require-uv \
+  --attachments CH_Knight/build/attachments.json
+```
+
+`attachments.json` is the brief's "attaches to" column as part patterns, for example:
+
+```json
+{"Buckle?": {"holders": ["Belt*"], "gap": 0.003}, "Pouch?": {"holders": ["Belt*"], "gap": 0.003},
+ "Scabbard": ["Hanger*"], "Knuckle_*": "Hand_*"}
 ```
 
 ## Phase 5: UVs, baking, materials
@@ -269,17 +317,35 @@ same skeleton, normalise weights, four influences per vertex as the delivery tar
 to one bone. Apply scale and rotation before binding; never apply an Armature modifier as
 cleanup.
 
-Gate: extreme-pose sheet (`review_render.py --action <pose_action> --frame N` for every pose the
-reference file lists), all separate parts visible together; `validate.py` shows no unweighted
-or over-influenced vertices; each socket tested with its real attachment in at least one pose.
+Hands that hold things, with the tools in `assets/grasp_tools.py`:
+- Seat each hand socket where the handle rests in the open hand (`grip_seat`), not at a point
+  guessed in front of a fist.
+- In every posed frame, close the fingers on the weapon's own mesh (`grasp`).
+- Aim each held weapon by turning the hand and forearm against the posed body (`turn_hand`,
+  `search`, `posed_body_tree`), so a blade never crosses the legs, scabbard or cloak.
+
+Bend elbows and knees about the bone's own hinge (a local rotation): a world-axis turn after the
+parent has turned twists the joint and drives the elbow plate into the sleeve.
+
+Gate:
+- The extreme-pose sheet (`review_render.py --action <pose_action> --frame N` for every pose the
+  reference file lists), all separate parts visible together. It includes the concept's own stance
+  (an idle holding what the concept holds) and every weapon state the game shows (in hand,
+  sheathed, stowed).
+- `scripts/pose_overlap.py` on the sheet's file: body pairs against the bind position, weapon and
+  carried-gear pairs counted absolutely, no weapon pair except a glove on its own grip.
+- `validate.py` shows no unweighted or over-influenced vertices.
+- Each socket is tested with its real attachment in at least one pose.
 
 ## Phase 7: secondary motion
 
 Only for garments, chains, tails, wings, cables, tracks or antennae that the brief marked as
 simulated or secondary. Follow section 6 of `references/rigging-animation.md`: separate render,
 simulation and collision representations, pinned attachment areas with real clearance, one owner
-per vertex's motion, a bone-chain fallback. Gate: posed renders in the extreme poses show no
-body or weapon penetration, and the fallback chain alone still reads as the same garment.
+per vertex's motion, a bone-chain fallback. Stowed gear holds the cloth under it: a shield on the
+back pins the cloak's top segments (`grasp_tools.settle_chain`), and a cape posed back off the legs
+must not swing through it. Gate: posed renders in the extreme poses show no body or weapon
+penetration (`pose_overlap.py`), and the fallback chain alone still reads as the same garment.
 
 ## Phase 8: animation
 
@@ -309,6 +375,11 @@ manifest; height within 1 percent; nothing below the ground plane), and the roun
 matches the Phase 3 clay render. Then import into a clean project of the target engine if one is
 available and play every clip with the real weapon or garment combination.
 
+For a web target, hand over a small three.js viewer. It loads the exported GLBs, attaches the
+weapons through the sockets with identity transforms, and scrubs the pose-test action exported on
+the armature alone. Users find problems there that static sheets hide. GLTFLoader strips "." from
+node names (`SOCKET_hand.R` arrives as `SOCKET_handR`; the original name is in `userData.name`).
+
 ## Phase 10: acceptance and handover
 
 Run the checklist in `references/delivery-and-acceptance.md` section 4. Produce
@@ -316,11 +387,18 @@ Run the checklist in `references/delivery-and-acceptance.md` section 4. Produce
 greyscale strip, the material turntable, the extreme-pose sheet, validate.json and roundtrip.json.
 Report to the user in this order: what matches, the measured deviations that remain, everything
 inferred without reference coverage, budgets used versus the tier, and the exact files delivered.
+After a revision, lead with the before/after close-up sheet from the same cameras.
 Do not describe the asset as matching the reference where a measurement says otherwise.
 
 ## Working rules
 
 - Measure, then model. Every constant comes from the brief or is marked inferred.
+- Passing gates is a floor, not the finish. Silhouettes and proportions can pass while the face,
+  hands, feet, joints and attachments fail a close look; review close-ups from Phase 3 on.
+- Attached things touch what holds them. Held things are gripped by the mesh of the hand, not
+  placed near it, and aimed so they clear the body in every pose.
+- When the user values realism over a budget, move the tier and record why. A triangle cap that
+  forces a primitive hand is the wrong trade for a character people will inspect.
 - Silhouette before form, form before detail, topology before texture, bind before animation.
 - Render evidence at every gate; the viewport is not evidence.
 - One file, one scale: every asset passes through the calibration file with the ruler.

@@ -90,6 +90,11 @@ measurements or guarantees:
 Runtime counts differ from the modelling viewport because UV and normal splits duplicate
 vertices; record the engine's measured counts, not Blender's.
 
+The tiers are planning ranges, not a verdict on quality. A character people will inspect up
+close (a web viewer, a menu, a cutscene) is a hero character. When the user asks for realism over
+a cap, move the tier and record why in the brief and the manifest. A realistic head, hands and
+boots took a 1.88 m armoured character from 30k to 57k triangles at LOD0.
+
 LOD transitions are tuned by screen size. Preserve the head, shoulder and weapon silhouette,
 garment thickness and joint deformation; remove tiny ornaments and merge material groups before
 sacrificing a limb's outline. Decide how skeletal LOD reduces finger, cloth, wing-tip and facial
@@ -115,11 +120,19 @@ Acceptance for every asset (all must hold before Phase 10 signs off):
 - Role or type is recognisable at gameplay size, in motion and in greyscale; important outlines
   survive shadow and fog.
 - Anatomy, costume or panel assembly and articulation make physical sense; contact points sit on
-  the ground; hands hold weapons; wheels touch the floor.
+  the ground; wheels touch the floor.
+- Hands grip what they hold: fingers closed on the handle's mesh, the thumb over them.
+- Every attachment touches its holder (`validate.py`: no floating parts, `--attachments`
+  clean). This covers buckles on straps, pouches on belts, handles on boards and scabbards on
+  hangers.
+- The close-up realism checklist (categories.md section 2) passes on the fixed close-up cameras.
+  After a revision, the before/after sheet goes to the user.
 - Normal, roughness and metallic response stay stable under changing light; no baked lighting
   fights the scene.
 - Joints, hinges, wings, doors and wheels move through their full range cleanly; no holes between
   modular pieces; no interpenetration on the extreme-pose sheet.
+- `pose_overlap.py` reports no weapon pair in any pose except a glove on its own grip.
+- The sheet includes the concept's own stance with what the character holds.
 - Secondary motion has no visible body or weapon penetration in ordinary play, a controlled
   fallback, and survives teleports and low frame rates.
 - Every clip has a tested loop and event contract; impact, projectile origin and telegraph match
@@ -145,12 +158,29 @@ project, play every clip with the same weapon or garment combination, view at th
 Confirm nothing depends on missing texture paths or hidden parent transforms. Record the engine's
 vertex and material counts.
 
+For a web target, the handover includes a small three.js viewer:
+- it loads the exported GLBs;
+- it attaches the weapon GLBs through the sockets with identity transforms;
+- it scrubs the pose-test action exported on the armature alone (glTF, animation only).
+
+People review in it, and they catch what the sheets missed. GLTFLoader strips "." from node names
+(`SOCKET_hand.R` arrives as `SOCKET_handR`, `DEF-upper_arm.L` as `DEF-upper_armL`); look nodes
+up by `userData.name` or document the mapping. Never rename the export for a loader.
+
 Manifest (asset-manifest.json, written by export_delivery.py): units and axes for authoring and
 export, target height, bounds, files per LOD with tri counts, materials, textures with colour
 spaces, texture contract and packing, skeleton with deform bone names and roots, sockets with
 world transforms and axis convention, colliders, animation contract pointer, inferred parts, and
 external dependencies. The pipeline is complete only when another person can import the asset
 from its manifest and reproduce the intended result.
+
+Also record in the manifest:
+- **Third-party sources:** name, licence and URL (a CC0 base mesh is still credited), and what
+  each was used for.
+- **Runtime rig obligations the file cannot carry:** helper bones that turn half a joint, grip
+  poses, eye bones.
+- **Deviations that came from a user's direction:** for example a realistic boot shorter than the
+  painted one, stated with the measurement.
 
 Animation contract (animation-contract.json): per clip name, fps, frame range, length in seconds,
 loop flag, events in seconds from pose markers, and any speed, blend direction, root motion or

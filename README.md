@@ -151,10 +151,10 @@ by eye:
 | 0. Brief | Reads every image and writes `asset-brief.md`: views and camera estimates, real scale and its evidence, 8 to 15 proportions to check, parts, materials, what must be inferred, target engine and budget | The brief; questions only for what the images cannot tell |
 | 1. Calibration | Master `.blend` with reference images as planes at real scale, a ruler, grid cell, door clearance, collision capsule and the game camera | Everything after this is measured in the same file and scale |
 | 2. Blockout | Primary masses, separate appendages, joint centres and pivots | Clay and silhouette compare sheets: IoU 0.85 or more, band widths within 0.05, proportions within 5 percent |
-| 3. Forms | Secondary and tertiary forms, layered parts in their real overlap order | IoU 0.90 or more, band widths within 0.03, proportions within 2 percent, clay turntable |
-| 4. Topology | LOW delivery meshes over the approved forms, LOD1 and LOD2 | `validate.py` within the triangle budget, wire render, no silhouette loss |
+| 3. Forms | Secondary and tertiary forms, layered parts in their real overlap order; realistic heads, hands and feet from anatomical base meshes when the asset will be inspected up close | IoU 0.90 or more, band widths within 0.03, proportions within 2 percent, clay turntable, and fixed close-up renders checked against the realism checklist |
+| 4. Topology | LOW delivery meshes over the approved forms, LOD1 and LOD2 | `validate.py` within the triangle budget with no floating parts and every declared attachment touching its holder, wire render, no silhouette loss |
 | 5. UVs, baking, materials | UVs, original materials, baked portable maps | Material turntable under a moving light, greyscale at gameplay size, clean checker render |
-| 6. Rig | Deformation skeleton, controls, pivots, sockets and weights (skipped for static props) | Extreme-pose sheet; no unweighted or over-influenced vertices |
+| 6. Rig | Deformation skeleton, controls, pivots, sockets and weights (skipped for static props); hand sockets seated in the open hand, fingers closed on the real weapon, held weapons aimed clear of the body | Extreme-pose sheet including the concept's own stance; `pose_overlap.py` with no weapon clipping; no unweighted or over-influenced vertices |
 | 7. Secondary motion | Cloth, chains, tails, wings or cables, only where the brief asks for them | Posed renders without penetration |
 | 8. Animation | Named clips with loop flags and event markers, only when requested | Clips rendered at the game camera, loop seams and event timings checked |
 | 9. Export and round trip | GLB or FBX with `asset-manifest.json` and `animation-contract.json`, then a reimport into an empty scene | Triangle counts, bones, clips and images match the manifest; height within 1 percent |
@@ -226,13 +226,19 @@ need them to rerun a gate yourself or to work without an agent.
 | `review_render.py` | Blender | Clay, silhouette, wire, checker or material renders from fixed views and a reference-matched camera, at gameplay size, as turntables or in posed frames. |
 | `compose_review.py` | Python 3 + Pillow | Compare sheet (reference, render, overlay, gameplay strip) with silhouette IoU and a ten-band width profile. |
 | `world_gate.py` | Blender | World-registered silhouette IoU against a cleaned orthographic reference matte, so scale and placement errors count. |
-| `validate.py` | Blender | Checks topology, transforms, UVs, weights, armature, sockets, colliders, naming and the triangle budget; exits 1 on any FAIL. |
+| `validate.py` | Blender | Checks topology, transforms, UVs, weights, armature, sockets, colliders, naming and the triangle budget; reports floating parts and, with `--attachments`, every part not touching its declared holder; exits 1 on any FAIL. |
+| `pose_overlap.py` | Blender | Counts interpenetration on the extreme-pose sheet: body and garment pairs against the bind position, weapons and carried gear absolutely (only a glove on its own grip is allowed). |
 | `bake_maps.py` | Blender (Cycles) | Bakes normal and AO from HIGH to LOW, plus base colour, roughness and metallic; can rebuild export-ready materials. |
 | `export_delivery.py` | Blender | Exports GLB, glTF or FBX with `asset-manifest.json` and `animation-contract.json`. |
 | `roundtrip.py` | Blender | Imports the export into an empty scene, reports what arrived and renders a check frame. |
 
 `assets/build_template.py` is the template for the per-phase build scripts. Each copy opens the
 master file, deletes the objects it owns, rebuilds them and saves, so any phase can be rerun.
+`assets/grasp_tools.py` holds the hand tools for the rig and pose test:
+- the grip seat (where a handle rests in the open hand);
+- the contact grasp (every finger closed on the weapon's mesh, the thumb over them);
+- weapon aiming against the posed body;
+- the cloth settle under stowed gear.
 
 Every script prints its options with `--help`. For the Blender scripts, put it after the `--`
 separator: `blender --background --python scripts/validate.py -- --help`.

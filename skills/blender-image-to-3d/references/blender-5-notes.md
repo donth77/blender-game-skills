@@ -12,7 +12,11 @@ user's viewport disagree.
   `identifier` comes from the node group's interface socket (`socket.identifier`). Keep a fallback
   to `mod[identifier]` for 4.x.
 - Actions are layered: `action.fcurves` is gone. Walk `action.layers[*].strips[*].channelbags[*].fcurves`
-  (or keyframe through `keyframe_insert` and let Blender create the channelbag).
+  (or keyframe through `keyframe_insert` and let Blender create the channelbag). For stepped keys
+  without touching F-curves, set `bpy.context.preferences.edit.keyframe_new_interpolation_type =
+  "CONSTANT"` around the `keyframe_insert` call and restore it after.
+- `BVHTree.FromObject` builds in the object's local space; transform queries by
+  `ob.matrix_world.inverted()`, or build with `FromPolygons` from world-space vertices.
 - Materials and worlds always use nodes; `use_nodes` is deprecated. Guard it with
   `bpy.app.version < (5, 0, 0)`.
 - Vertex group names live on the mesh data. A copied mesh already carries the names, so creating
@@ -45,6 +49,24 @@ user's viewport disagree.
   simple transparent material.
 - A long headless render should write numbered frames and skip frames that already exist, so it
   can be stopped, fixed and resumed; encode with ffmpeg at the end.
+- `blender --background --python x.py` exits 0 even when the script raises. Pass
+  `--python-exit-code 1` in every chained command, or a failed phase lets the next one run on
+  stale data.
+- Cycles on Metal (Blender 5.1) intermittently aborted at the start of a bake with
+  "NSURL initFileURLWithPath: nil string parameter", thrown from the background kernel
+  specialisation threads (MetalKernelPipeline::compile). Two long bake chains died this way at
+  different steps. Set the Cycles preference `kernel_optimization_level = "OFF"` for bakes
+  (`bake_maps.py --device GPU` does), and write multi-step bake chains so they resume at a named
+  step.
+- Pose solvers that only read bones (grip searches, aim searches, settle passes) should switch the
+  Armature modifiers off (`show_viewport = False`) while they search. Otherwise every depsgraph
+  update re-skins every mesh, which dominates a search over hundreds of candidates. Switch them
+  back on before saving, rendering or measuring overlaps. Grip searches over finger angles need
+  no updates at all: compose the chain's pose matrices from the rest matrices (forward
+  kinematics).
+- The glTF exporter samples constraint results into exported actions. A helper bone driven by
+  Copy Rotation arrives in three.js with its half turn baked into the pose action; the rest pose
+  carries no constraint, so write the runtime rule into the manifest.
 
 ## 3. Review and look-development lessons
 

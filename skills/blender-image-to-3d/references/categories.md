@@ -99,6 +99,77 @@ Techniques for faces, smooth analytic forms, hands, the neck join, armour over c
   percent, transmission weakened) over a Principled base, and check a thin lock against a dark
   background, not only the dense mass.
 
+Realistic anatomy, for the parts people look at closely. A head, hand or boot built from
+primitives reads as low-poly at any triangle count, and folded-over ears read as injury. When
+realism matters, start from an anatomical base mesh and fit it to the reference. Blender Studio's
+Human Base Meshes bundle is CC0: a realistic head with separate sclera and iris, hands and feet.
+Record its source and licence in `ref/` and in the manifest.
+
+- **Head fit.** Fit in stages, each measured against the blueprint:
+  1. A similarity transform from the pupils and the cornea plane.
+  2. A vertical remap through the landmarks (brow, nose tip, subnasal point, lips, chin,
+     menton), monotone cubic, so the features land at their heights.
+  3. Depth, piecewise about the ear line: the face plane moves to the profile, the ear line stays,
+     and the back of the skull stretches at most 15 percent. One depth scale for the whole head
+     stretched the jaw about 30 percent.
+  4. Width per height, to the front outline minus the hair thickness.
+  5. A small radial-basis warp (a few cm radius) to put the eyes, nose tip and lips on the paint.
+
+  Aim for a profile IoU of about 0.9 before hair. Keep the base mesh's ears and eyelids. The
+  eyeballs are real spheres (sclera, iris) on eye bones. Hair and beard volume is a displacement
+  masked by the painted projection's hair colour; scale the mask smoothing with the mesh density,
+  or dense levels groove. Project the painted back view on back-facing normals, and sample the
+  crown from a clean top-down hair tile, not from the side view's edge.
+- **Hands and gloves.** Map the base hand to the measured wrist and hand length in a local frame,
+  mirroring the frame for the left hand. Read the finger joint chain from the mesh and put the
+  finger bones on it. Put plates (the back of a gauntlet, the knuckle guard) a few mm off the glove,
+  following its envelope. Keep the rest pose open: grips come from the pose (rigging-animation.md
+  section 4).
+- **Feet and boots.** Build the boot on a real last from the base foot: sole and heel block, welt,
+  toe spring, toe cap and instep strap, with a length of about 15 percent of height (a 0.29 m boot
+  for a 1.88 m man). A painted turnaround boot 0.39 m long built as drawn reads as a brick slab.
+  Build the real one and record the silhouette deviation.
+- **Joint armour.** Knee cops (poleyns) and couters are shaped cops:
+  - an outline designed in (angle around the limb, height) space, with a raised bulge;
+  - a rolled rim tube;
+  - a side wing;
+  - an upper and a lower lame.
+
+  They are not hemispheres: domes read as balls stuck on a flat knee. They ride helper bones that
+  turn half the joint's bend (rigging-animation.md section 1).
+- **Cloth at the neck.** Stacked scarf tubes read as fake. Drape cowls, scarves and hoods with
+  Blender's cloth solver: a pleated tube pinned under the jaw falls onto collision copies of the
+  neck, gorget and pauldrons (the same builders at low detail). Pin the frame rate so the settle is
+  reproducible, and keep the settled shape as the rest mesh. Lift a cloak over the armour by ray
+  casts and check it with an overlap test: armour poking through a cape is the first thing seen
+  from behind.
+- **Belts and hanging gear.** Build each piece so it is held:
+  - buckles as open frames with a prong lying on the strap;
+  - pouches hung from the belt by loops, with flaps and studs;
+  - a scabbard hung by straps or hangers from the belt. A block "frog" reads as a brown rectangle
+    holding a sword.
+
+  Check contact with `validate.py --attachments`. For hanging gear, make the declared holder the
+  exact part that carries it. A pouch that touches the skirt behind it is still floating off its
+  belt.
+
+Realism checklist for the close-up review (SKILL.md gate protocol step 4):
+- **Face:** proportions against the blueprint; eyes with sclera and iris set behind the lids; nose,
+  lips and chin from the fit; no faceting at the silhouette.
+- **Ears:** helix, antihelix and lobe; not a folded blob.
+- **Hair and beard:** volume at the hairline and jaw; no painted-flat scalp, bald band or combed
+  streaks at the crown.
+- **Hands:** finger lengths and joints; knuckles; glove thickness. A grip closes round the handle
+  with the thumb over the fingers.
+- **Feet:** length about 15 percent of height; a last shape; sole, heel and toe spring; the
+  foot on the ground.
+- **Knees and elbows:** shaped cops, no domes; nothing clipping at full bend.
+- **Neck and cape:** the cloth hangs in folds; no armour through it at rest or in poses.
+- **Attachments:** nothing hovering; every strap, buckle, pouch, handle and hanger touches its
+  holder.
+- **Weapons:** in the hand in every pose; clear of the body, scabbard and ground; stowed gear
+  resting on what carries it.
+
 Topology (LOW): continuous loops around eyes, mouth, shoulders, elbows, wrists, hips, knees and
 ankles; three or more segments on each side of a bending joint; no long thin triangles or high
 valence poles on a crease; clavicle geometry that lets an arm rise without collapsing the chest;
@@ -113,9 +184,13 @@ skin, hair, woven cloth, worn leather, corroded metal each with a believable rou
 Articulation: humanoid deformation skeleton (see rigging-animation.md), sockets for both hands,
 weapon tip, back mount, head, chest and feet.
 
-Acceptance specifics: role and silhouette readable at gameplay size in greyscale; feet contact
-the floor; hands hold their weapon; shoulders, elbows, hips and knees deform cleanly on the
-extreme-pose sheet; no holes between costume pieces in any pose.
+Acceptance specifics:
+- Role and silhouette readable at gameplay size in greyscale.
+- Feet contact the floor.
+- Hands grip their weapon: fingers closed on the handle's mesh, the thumb over them.
+- Shoulders, elbows, hips and knees deform cleanly on the extreme-pose sheet.
+- No holes between costume pieces in any pose.
+- The realism checklist passes on the close-ups.
 
 ## 3. Creatures
 
@@ -255,8 +330,21 @@ Articulation: hinge empties or bones, `SOCKET_grip` and `SOCKET_tip` (or muzzle)
 convention above; the socket must be tested with the actual hand and animation, not an empty at
 the hand origin.
 
-Acceptance specifics: grip fits a hand of the character it belongs to, hinge motion passes through
-its real range without clipping, the silhouette survives at gameplay distance.
+Shields:
+- **Centre grip.** A round shield with a boss has a hand hole under the boss and the handle
+  riveted across it on the back. The palm faces the board and the fingers close into the boss, so
+  the socket's face direction is the palm's normal. The back of the hand facing the board is
+  impossible, and it hides a handle floating in space.
+- **Strapped shields.** They carry an arm strap (enarmes) and a grip near the rim instead.
+- **The dome.** A domed board curls its rim back towards the bearer. Keep the dome shallow (4 to 6
+  cm on a 0.75 m shield), so the forearm lying behind a centre grip clears the rim.
+- **Painted designs.** A design projected by position through a thin board paints its back too.
+  Mask it by the face normal, and give the back bare wood or leather.
+
+Acceptance specifics:
+- The grip fits a hand of the character it belongs to, and the handle touches what holds it.
+- Hinge motion passes through its real range without clipping.
+- The silhouette survives at gameplay distance.
 
 ## 7. Environment pieces
 

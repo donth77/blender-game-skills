@@ -37,7 +37,18 @@ root                       ground origin, optional root motion
 ```
 
 Twist bones (upper arm, forearm, thigh), eye bones, jaw, breast or belly bones for heavy
-builds, and cloth, wing, tail or antenna chains supplement this. Quadruped: spine chain from
+builds, and cloth, wing, tail or antenna chains supplement this. Joint armour gets a helper bone
+at the elbow and knee:
+- a short copy of the forearm's or shin's first quarter, parented to the upper bone;
+- turned half the joint's bend by Copy Rotation (local to local, influence 0.5);
+- carrying the couter or knee cop, with the upper lame on the upper bone and the lower lame on the
+  lower bone.
+
+A cop on one bone either stays behind the joint or swings into the limb. glTF carries no
+constraints:
+- The exporter samples the helper's turn into exported actions.
+- A pose made at runtime must set `helper.quaternion = identity.slerp(child.quaternion, 0.5)`.
+- Write that note into the manifest. Quadruped: spine chain from
 pelvis through neck and head, four limbs with scapula, shoulder, elbow, carpus and hip, stifle,
 hock, plus tail chain. Winged: humerus, radius, metacarpal, digit chains per wing with membrane
 helper bones. Vehicles: body root, one bone or empty per wheel at the axle centre (child of a
@@ -68,6 +79,19 @@ the mesh and breaks the rig relationship. Apply only the modifiers meant for the
 Fix deformation problems in this order: joint placement, topology, weights. Corrective shape
 keys are a targeted tool for a specific pose, not a substitute for a viable bind.
 
+Rules that kept a one-piece glove, its plates and hanging gear clean:
+- **Glove webs.** The web between two fingers takes both nearest finger chains, blended by how
+  near each is. Nearest-chain-only weights tear the web into a sliver when neighbouring fingers
+  close by different amounts.
+- **Under plates.** Glove vertices under a rigid plate (the back of a gauntlet) follow the plate's
+  bone. Otherwise a thumb chain that happens to lie nearest drags them through the plate.
+- **The glove's cuff.** Its end blends into the forearm inside the leather cuff, so a wrist turn
+  twists it out of sight.
+- **Hanging gear.** A pouch rides the tasset or skirt it hangs on, taking that part's rule, so the
+  two move together when the thigh lifts.
+- **Cloaks.** Keep them on their own chains. Blending a cloak into the shoulder bones where it
+  rests on a pauldron dragged its edge into the backplate whenever an arm moved forward.
+
 ## 3. Extreme-pose sheet
 
 Before accepting a rig, render (review_render.py with `--action` and `--frame`) a sheet of the
@@ -81,8 +105,27 @@ Vehicles: full steering lock, full suspension compression and rebound, doors and
 turret and barrel at limits.
 Props: hinge at both limits.
 
-Pass criteria: no collapsed volume at joints, no interpenetration between armour or garment pieces,
-no exposed holes, feet or wheels stay on their contact plane, the weapon stays in the hand.
+The sheet also holds:
+- the stance the concept shows (an idle holding what the concept holds);
+- every weapon state the game shows, in hand and stowed. A test file can key a stowed item
+  between two sockets with two Copy Transforms constraints, the second's influence keyed per
+  frame with constant interpolation.
+
+Bend hinges (elbows, knees, fingers) about the bone's own axis, a local rotation. A world-axis
+turn applied after the parent has turned twists the joint.
+
+Measure the sheet with `scripts/pose_overlap.py`:
+- **Body and garment pairs** are compared with the bind position (the armature at REST). Never
+  compare with a test frame used as a baseline: a weapon clipping in that frame vanishes from
+  every count.
+- **Weapons and carried gear** are counted absolutely, allowing only a glove on its own grip.
+
+Pass criteria:
+- no collapsed volume at joints;
+- no interpenetration between armour or garment pieces;
+- no exposed holes;
+- feet or wheels stay on their contact plane;
+- the weapon stays in the hand, clear of the body.
 
 ## 4. Sockets and functional parts
 
@@ -96,6 +139,31 @@ the manifest (export_delivery.py does this).
 Test a socket with its real attachment and animation: a weapon in the hand through the whole
 attack, a rider in the seat through the gallop, a muzzle flash at the muzzle during recoil. An
 empty at the hand origin proves nothing.
+
+Hand sockets and grips (`assets/grasp_tools.py`):
+- **The seat.** Place the hand socket where the handle rests in the open hand (`grip_seat`):
+  - diagonally across the palm, index end distal (a power grip; about 16 degrees for a sword,
+    less for a shield handle);
+  - crossing the index finger's line 15 to 20 mm below its knuckle;
+  - lowered onto the glove (palm and straight fingers) until it touches.
+
+  A socket placed at a point in front of a fist puts the handle under the finger bases, and every
+  finger hooks instead of wrapping.
+- **The grasp.** In each posed frame, close the fingers on the weapon's own mesh (`grasp`):
+  - Each finger takes as much flexion as it can with no glove vertex inside the weapon.
+  - The MCP and PIP stay in proportion, with the DIP coupled to the PIP.
+  - The thumb then closes over the curled index finger.
+  - It is a search, not a path: a coupled curl that stops at first contact stops fingertips on the
+    wrong surface.
+- **Aiming.** Aim each held weapon: turn the hand about the forearm (pronation and supination),
+  deviate and flex the wrist, and rotate the humerus. Score each candidate against the posed body
+  (`posed_body_tree`, `body_clearance`), not capsules. The hips, belt and pouches reach 0.20 m in
+  front of the pelvis, and a fat capsule forbids the pose the concept shows.
+- **Centre-grip shields.** The palm faces the board: the socket's face axis is the palm normal,
+  and the fingers close into the boss. The forearm lies nearly parallel to the board, so the aim
+  also flexes the wrist to tip the forearm away from the rim, and scores against the posed arm.
+- **Stowed gear.** Place SOCKET_back by ray casts: the stowed item's back must clear the cloak
+  and body everywhere by about 10 mm, not at one point.
 
 Hinged parts pivot at the hinge. Bows need real string and nock motion. Shields need a grip
 orientation that works through every animation. A breath or projectile origin must agree with
@@ -168,3 +236,16 @@ Authoring process:
 Keep thickness and render subdivision from turning into self-collision noise. Separate the inner
 robe from the outer cape with real space and a stated collision policy. Full simulation is for a
 bounded number of nearby assets; everything else gets the bone fallback.
+
+Stowed gear holds the cloth under it. A shield strapped over a cloak pins the cloak's top
+segments, so a pose that swings the cape back off the legs must not carry it through the shield.
+`grasp_tools.settle_chain` turns each chain bone forward until its vertices clear the item, and
+passes the turn it gave up to the bone below. The cloth then folds under the rim and still clears
+the legs.
+
+Draped garments at rest come from the cloth solver, not modelled tubes:
+- a pleated start shape above the collision copies, pinned where the garment is held;
+- a fixed frame rate and frame count;
+- the settled mesh kept as the rest shape.
+
+Cloth that starts inside a collider stays inside it.

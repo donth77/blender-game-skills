@@ -34,6 +34,15 @@
         "ref/ranger_sheet.png",
         "ref/ranger_concept.jpg"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "The knight you built passes the gates, but up close the face looks low-poly and uncanny, the ears look folded, the hands are blocky and don't really hold the sword, the boots look like slabs, the knee plates are domes, a buckle and the pouches float off the belt, and the sword clips through his leg in some poses. Make him look realistic; I care more about that than the 35k cap.",
+      "expected_output": "close-up renders from fixed cameras before and after; head, hands and feet rebuilt on CC0 anatomical base meshes fitted to the blueprint (landmark fit, real eyes and ears) with the source and licence in the manifest; boots on a realistic last with the painted-length deviation recorded; shaped knee and elbow cops on half-bend helper bones; validate.py --attachments from the brief's attaches-to column with no floating parts; hand sockets seated in the open hand and fingers closed on the weapon mesh in every pose; the idle stance from the concept on the extreme-pose sheet; pose_overlap.py with no weapon pairs except the glove on its grip; the budget tier moved with the reason recorded; a before/after sheet in the report",
+      "files": [
+        "ref/knight_front.png",
+        "ref/knight_side.png"
+      ]
     }
   ]
 }

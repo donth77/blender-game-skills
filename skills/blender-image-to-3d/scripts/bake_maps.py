@@ -286,6 +286,13 @@ def main(a):
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.device = a.device
+    if a.device == "GPU":
+        # Metal: the background kernel specialisation threads intermittently aborted Blender 5.1 at
+        # the start of a bake ("NSURL initFileURLWithPath: nil string parameter"); the generic
+        # kernel never compiles in the background (blender-5-notes.md)
+        cp = bpy.context.preferences.addons["cycles"].preferences
+        if getattr(cp, "compute_device_type", "") == "METAL" and hasattr(cp, "kernel_optimization_level"):
+            cp.kernel_optimization_level = "OFF"
     scene.cycles.samples = a.samples
     scene.render.bake.target = "IMAGE_TEXTURES"
     os.makedirs(a.out, exist_ok=True)

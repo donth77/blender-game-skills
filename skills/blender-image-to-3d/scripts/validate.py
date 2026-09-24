@@ -10,10 +10,21 @@ blender --background --python scripts/validate.py -- \
 FAIL: negative scale, unweighted or over-influenced vertices on a bound mesh, open collision
 proxies (COL_*), tri budget exceeded, missing UVs with --require-uv.
 WARN: unapplied transforms, doubles, loose geometry, ngons, zero-area faces, .001 names,
-non-normalised weights, tiny weights, vertex groups with no bone, unparented sockets.
+non-normalised weights, tiny weights, vertex groups with no bone, unparented sockets, and
+floating parts: per collection, every loose piece (mesh island or object) of the LOD0 meshes is
+linked to the pieces within --max-gap of it; pieces not connected to the largest group are
+reported with their gap (a shield handle not touching the board, plates hovering off a glove).
+Real attachments touch what holds them. A piece near the wrong neighbour still passes that test,
+so --attachments takes the brief's "attaches to" column as JSON: part names (the --part-prefix
+vertex groups of a joined mesh, else object names; fnmatch patterns) mapped to their holders, each
+checked for contact within --max-gap or the rule's own gap:
+  {"Handle": "Face", "Buckle?": {"holders": ["Belt*"], "gap": 0.003}, "Buckle?Prong": "Buckle?",
+   "Pouch?": {"holders": ["Belt*"], "gap": 0.003}}
 Open boundaries are reported, not failed: cloth sheets, hair cards and decals are open by design.
 """
-import bpy, bmesh, sys, os, re, json, argparse
+import bpy, bmesh, sys, os, re, json, argparse, fnmatch
+from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 NUMERIC_SUFFIX = re.compile(r"\.\d{3}$")
 
@@ -30,6 +41,11 @@ def parse(argv):
     p.add_argument("--require-uv", action="store_true")
     p.add_argument("--doubles-dist", type=float, default=1e-4)
     p.add_argument("--max-verts-islands", type=int, default=400000, help="skip island counting above this")
+    p.add_argument("--max-gap", type=float, default=0.006,
+                   help="floating-part check: pieces farther than this (m) from everything else are reported (0 = off)")
+    p.add_argument("--part-prefix", default="part:", help="vertex-group prefix naming the parts of a joined mesh")
+    p.add_argument("--attachments", default=None,
+                   help='JSON file {"part pattern": "holder pattern" or [patterns]}: each part must touch a holder')
     return p.parse_args(argv)
 
 
@@ -162,6 +178,136 @@ def mesh_checks(ob, a, dg, report):
     return tris
 
 
+def mesh_pieces(ob, part_prefix):
+    """Loose islands of a mesh in world space: (label, world verts, polys as vertex-index lists)."""
+    me = ob.data
+    mw = ob.matrix_world
+    names = {g.index: g.name for g in ob.vertex_groups}
+    adj = [[] for _ in me.vertices]
+    for e in me.edges:
+        a, b = e.vertices
+        adj[a].append(b)
+        adj[b].append(a)
+    island = [-1] * len(me.vertices)
+    n = 0
+    for v in range(len(me.vertices)):
+        if island[v] >= 0:
+            continue
+        stack = [v]
+        while stack:
+            c = stack.pop()
+            if island[c] >= 0:
+                continue
+            island[c] = n
+            stack.extend(x for x in adj[c] if island[x] < 0)
+        n += 1
+    verts = [mw @ v.co for v in me.vertices]
+    pieces = [{"verts": [], "polys": [], "part": None} for _ in range(n)]
+    local = [0] * len(me.vertices)
+    for i, v in enumerate(me.vertices):
+        pc = pieces[island[i]]
+        local[i] = len(pc["verts"])
+        pc["verts"].append(verts[i])
+        if pc["part"] is None:
+            pc["part"] = next((names[g.group][len(part_prefix):] for g in v.groups
+                               if names.get(g.group, "").startswith(part_prefix)), None)
+    for p in me.polygons:
+        pieces[island[p.vertices[0]]]["polys"].append([local[i] for i in p.vertices])
+    out = []
+    for k, pc in enumerate(pieces):
+        if not pc["polys"]:
+            continue
+        c = sum(pc["verts"], Vector()) / len(pc["verts"])
+        part = pc["part"] or re.sub(r"_LOD\d+$", "", ob.name)
+        label = ("%s %s" % (ob.name, pc["part"]) if pc["part"] else "%s island %d" % (ob.name, k))
+        out.append((label + " at (%.2f, %.2f, %.2f)" % tuple(c), pc["verts"], pc["polys"], part))
+    return out
+
+
+def floating_parts(groups, a):
+    """Per group of objects (one collection = one asset): link loose pieces within max_gap of each
+    other; return the pieces not connected to the largest group, with their gap to it, and the
+    parts that do not touch their declared holder (--attachments)."""
+    rules = json.load(open(a.attachments)) if a.attachments else {}
+    found = []
+    for gname, objs in groups.items():
+        pieces = []
+        for ob in objs:
+            pieces += mesh_pieces(ob, a.part_prefix)
+        if len(pieces) < 2:
+            continue
+        pieces = [pc for pc in pieces if len(pc[2])]
+        trees, boxes, samples = [], [], []
+        for label, vs, ps, part in pieces:
+            trees.append(BVHTree.FromPolygons(vs, ps))
+            lo = Vector((min(v.x for v in vs), min(v.y for v in vs), min(v.z for v in vs)))
+            hi = Vector((max(v.x for v in vs), max(v.y for v in vs), max(v.z for v in vs)))
+            boxes.append((lo, hi))
+            samples.append(vs[::max(1, len(vs) // 256)])
+        parent = list(range(len(pieces)))
+
+        def root(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+
+        def near(i, j, reach):
+            for q in samples[i]:
+                if trees[j].find_nearest(q, reach)[0] is not None:
+                    return True
+            return False
+
+        def box_gap(i, j):
+            (a0, a1), (b0, b1) = boxes[i], boxes[j]
+            return max(max(b0[k] - a1[k], a0[k] - b1[k], 0.0) for k in range(3))
+        for i in range(len(pieces)):
+            for j in range(i + 1, len(pieces)):
+                if root(i) == root(j) or box_gap(i, j) > a.max_gap:
+                    continue
+                if near(i, j, a.max_gap) or near(j, i, a.max_gap):
+                    parent[root(i)] = root(j)
+        comps = {}
+        for i in range(len(pieces)):
+            comps.setdefault(root(i), []).append(i)
+        main = max(comps.values(), key=lambda c: sum(len(pieces[i][1]) for i in c))
+        for comp in comps.values():
+            if comp is main:
+                continue
+            gap = min((trees[j].find_nearest(q, 0.5)[3] for i in comp for q in samples[i] for j in main
+                       if trees[j].find_nearest(q, 0.5)[0] is not None), default=None)
+            found.append("%s: %s floating %s from the rest" % (
+                gname, "; ".join(pieces[i][0] for i in comp[:4]) + (" (+%d pieces)" % (len(comp) - 4) if len(comp) > 4 else ""),
+                ("%.1f mm" % (gap * 1000)) if gap is not None else "more than 0.5 m"))
+        if rules:
+            found += attachment_check(gname, pieces, trees, samples, rules, a.max_gap)
+    return found
+
+
+def attachment_check(gname, pieces, trees, samples, rules, gap):
+    """Each part matching a rule's pattern must come within `gap` of a piece of its holder."""
+    out = []
+    parts = sorted({pc[3] for pc in pieces})
+    for pattern, rule in rules.items():
+        lim = gap
+        if isinstance(rule, dict):
+            lim = rule.get("gap", gap)
+            rule = rule["holders"]
+        holders = [rule] if isinstance(rule, str) else list(rule)
+        hold = [j for j, pc in enumerate(pieces) if any(fnmatch.fnmatch(pc[3], h) for h in holders)]
+        for part in [p for p in parts if fnmatch.fnmatch(p, pattern)]:
+            mine = [i for i, pc in enumerate(pieces) if pc[3] == part]
+            if not hold:
+                out.append("%s: %s has no holder matching %s" % (gname, part, holders))
+                continue
+            best = min((trees[j].find_nearest(q, 0.5)[3] for i in mine for q in samples[i] for j in hold
+                        if trees[j].find_nearest(q, 0.5)[0] is not None), default=None)
+            if best is None or best > lim:
+                out.append("%s: %s does not touch %s (%s away)" % (
+                    gname, part, " / ".join(holders), ("%.1f mm" % (best * 1000)) if best is not None else "over 0.5 m"))
+    return out
+
+
 def armature_checks(ob, report):
     rec = {"name": ob.name, "type": "ARMATURE", "warn": [], "fail": [], "info": {}}
     W, F = rec["warn"].append, rec["fail"].append
@@ -201,11 +347,15 @@ def socket_checks(ob, report):
 def main(a):
     bpy.ops.wm.open_mainfile(filepath=os.path.abspath(a.blend))
     dg = bpy.context.evaluated_depsgraph_get()
-    objs = []
+    objs, groups = [], {}
     for n in [x for x in a.collections.split(",") if x]:
         c = bpy.data.collections.get(n)
         if c:
             objs += list(c.all_objects)
+            lod0 = [o for o in c.all_objects if o.type == "MESH" and not o.name.startswith("COL_")
+                    and int((re.search(r"_LOD(\d+)$", o.name) or [0, 0])[1]) == 0]
+            if lod0:
+                groups[n] = lod0
     seen = set()
     report, total_tris, lod_tris = [], 0, {}
     for ob in objs:
@@ -234,6 +384,9 @@ def main(a):
     for r in report:
         summary["fail"] += ["%s: %s" % (r["name"], f) for f in r["fail"]]
         summary["warn"] += ["%s: %s" % (r["name"], w) for w in r["warn"]]
+    if a.max_gap > 0:
+        summary["floating_parts"] = floating_parts(groups, a)
+        summary["warn"] += ["floating part: " + f for f in summary["floating_parts"]]
     out = {"blend": os.path.abspath(a.blend), "summary": summary, "objects": report}
     if a.out:
         os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
