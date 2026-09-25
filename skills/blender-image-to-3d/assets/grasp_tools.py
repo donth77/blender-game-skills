@@ -31,7 +31,8 @@ What each piece does and why:
 - turn_hand / search / posed_body_tree / body_clearance: aim a held weapon by turning the hand
   about the forearm (pronation, supination), deviating and flexing the wrist, and rotating the
   humerus, scoring each candidate against the posed body's surface. A blade that is not aimed
-  cuts through the legs, the scabbard or the cloak in half the poses.
+  cuts through the legs, the scabbard or the cloak in half the poses. prop_hits adds the exact
+  test: sampled points miss a thin part (a scabbard, a strap) that passes between them.
 - settle_chain: a stowed shield or pack holds the cloth under it: turn each cape segment forward
   until its vertices clear the item, passing the given-up swing to the segment below.
 
@@ -437,6 +438,21 @@ def body_clearance(points, tree, ground=0.04):
         if loc is not None:
             worst = min(worst, d if (q - loc).dot(n) >= 0 else -d)
     return worst
+
+
+def prop_mesh(ob):
+    """A held prop's mesh in its own frame, for prop_hits (the prop rides its socket with identity)."""
+    return [v.co.copy() for v in ob.data.vertices], [list(q.vertices) for q in ob.data.polygons]
+
+
+def prop_hits(mesh, M, tree):
+    """Triangle pairs where the prop's mesh, placed at socket matrix M, crosses the posed body tree.
+    Use it with body_clearance in an aim search: the sampled distance steers the search, and any hit
+    costs more than every clear candidate can score. Points sampled on a prop miss a thin part that
+    passes between them: a scabbard went through a shield's board between two sample rings 8 cm
+    apart (86 triangle pairs) while the samples read 13 mm clear."""
+    verts, polys = mesh
+    return len(tree.overlap(BVHTree.FromPolygons([M @ v for v in verts], polys)))
 
 
 # CLOTH UNDER A STOWED ITEM (pose time)

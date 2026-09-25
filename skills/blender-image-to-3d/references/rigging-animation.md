@@ -114,11 +114,40 @@ The sheet also holds:
 Bend hinges (elbows, knees, fingers) about the bone's own axis, a local rotation. A world-axis
 turn applied after the parent has turned twists the joint.
 
+Take the poses from reference motion wherever a clip exists for the asset's kind of movement: the
+user's clips, a Mixamo library, motion capture. Poses built from a few whole-bone rotations (both
+arms 105 degrees sideways, the thighs turned -95 with nothing else moving) keep none of a real
+body's balance, and a review called them "cartoonishly and hilariously unrealistic". Keep each test's
+purpose (shoulders up, reach, deep elbow bend, crouch, stride) and pick a real frame that loads the
+same joints: an overhead strike's wind-up, a lunge, a block, a crouch, a walk. Name each pose after
+what its frame shows in a render of the clip, not after the clip's title: a clip called Attack,
+sampled at 60 percent, was the follow-through of a sweeping cut, not the thrust its first name
+promised. `assets/retarget_tools.py` samples frames in their own Blender process and retargets
+them. Its docstring gives the method:
+- rest frames aligned on two anatomical axes, the palm's normal for the hands;
+- limbs rolled into their hinge planes, no bending past rest, the forearm's roll at the wrist;
+- the root scaled to our hips, and the lower sole on the ground;
+- props aimed at the reference prop's placement rather than copying its hand;
+- cloth chains hung under gravity against capsule proxies of the body and of the gear hung on it
+  (a scabbard and its straps: without them a cloak hung through the scabbard in a crouch).
+
+Real motion finds deformation limits that the synthetic poses hid, such as hip skirts and tassets at
+90+ degrees of hip flexion, rigid cuffs at bent wrists, pauldrons against the breastplate when an
+arm swings across, and a scabbard rigid on the pelvis meeting the raised thigh at its throat in a
+crouch. Record them with their counts. Fix what the weights can: belts on the waist padding's own
+rule, and cloth kept off the body. A plate that must hinge at its straps (a tasset) needs a helper
+bone, not a blended weight: pinning its top to the pelvis moved the collision into the thigh
+plates. Gear that rides on straps (a scabbard) needs a swing bone driven by the thigh for the same
+reason.
+
 Measure the sheet with `scripts/pose_overlap.py`:
 - **Body and garment pairs** are compared with the bind position (the armature at REST). Never
   compare with a test frame used as a baseline: a weapon clipping in that frame vanishes from
   every count.
 - **Weapons and carried gear** are counted absolutely, allowing only a glove on its own grip.
+- **Claims** such as "no weapon crosses the body in any pose" are read back from the report, pose
+  by pose, before they are written. One summary said so while its own file listed a shield through
+  the scabbard in one pose.
 
 Pass criteria:
 - no collapsed volume at joints;
@@ -170,7 +199,11 @@ Hand sockets and grips (`assets/grasp_tools.py`):
 - **Aiming.** Aim each held weapon: turn the hand about the forearm (pronation and supination),
   deviate and flex the wrist, and rotate the humerus. Score each candidate against the posed body
   (`posed_body_tree`, `body_clearance`), not capsules. The hips, belt and pouches reach 0.20 m in
-  front of the pelvis, and a fat capsule forbids the pose the concept shows.
+  front of the pelvis, and a fat capsule forbids the pose the concept shows. Points sampled on the
+  prop miss a thin part that passes between them: a scabbard went through a shield's board between
+  two sample rings 8 cm apart while the samples read 13 mm clear. Add the exact test: place the
+  prop's mesh at each candidate and count its triangles crossing the body (`prop_hits`), and let
+  any hit lose to every clear candidate.
 - **Held props with a fixed grip** (a shield's handle, a lantern's bail, a torch, a staff): take
   the socket's axes from how the object is used, not from the palm. A centre-grip shield, for
   example, is held as a punch with the knuckles into the boss, so its face axis runs along the

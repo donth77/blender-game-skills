@@ -61,6 +61,15 @@
         "ref/knight_front.png",
         "ref/knight_side.png"
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "The test poses in the viewer look cartoonish: arms thrown straight up, a stiff crouch, a stride that just swings the legs. Either remove them or fix them properly using the Mixamo clips I put in asset-lib/mixamo. Also the brooch floats in front of the chest plate when it should touch it.",
+      "expected_output": "each test pose replaced by a real frame from a reference clip that loads the same joints, retargeted with rest frames aligned on two anatomical axes (the palm's normal for the hands), limbs rolled into their hinge planes, no bending past rest, the forearm's roll at the wrist, the root scaled and the lower sole grounded; held props aimed at the clip's prop placement instead of copying a hand that holds a different kind of prop, each candidate scored with an exact mesh intersection test against the posed body as well as sampled clearance; bone-chain cloth hung under gravity against capsule proxies of the body and of the gear hung on it (scabbard, straps); poses named after what each sampled frame shows in a render of the clip, not the clip's title; weapon claims read back from the overlap report pose by pose; posed intersection counts before and after, with the remaining deformation limits recorded; the fastener squared to the plate under its whole footprint and resting on the cloth and plate with the cloth laid flat under it, checked with a section; before/after viewer captures",
+      "files": [
+        "ref/knight_front.png",
+        "ref/knight_side.png"
+      ]
     }
   ]
 }

@@ -246,6 +246,9 @@ clearances that keep each vertex on its own side of the armour, a collar rolled 
 with its sides lifted over the cloak's edge, rigid ornaments seated on the cloth, and a face-level
 overlap settle that works for layered plates too.
 
+`assets/retarget_tools.py` samples frames of reference clips (Mixamo, motion capture) and
+retargets them onto the delivery skeleton, so the extreme-pose sheet shows real movement.
+
 Every script prints its options with `--help`. For the Blender scripts, put it after the `--`
 separator: `blender --background --python scripts/validate.py -- --help`.
 
@@ -299,7 +302,8 @@ every mismatch is inside the phase tolerance.
         |-- references/              # categories, delivery and acceptance, rigging and
         |                            # animation, Blender 5 notes
         |-- assets/                  # build_template.py (per-phase build scripts),
-        |                            # grasp_tools.py (hands), cloth_tools.py (draped cloth)
+        |                            # grasp_tools.py (hands), cloth_tools.py (draped cloth),
+        |                            # retarget_tools.py (reference poses)
         `-- evals/evals.json         # test prompts for evaluating the skill
 ```
 

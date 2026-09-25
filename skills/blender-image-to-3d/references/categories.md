@@ -194,11 +194,21 @@ Record its source and licence in `ref/` and in the manifest.
   cloth meeting one of its plates within the cloth's thickness plus the clearance), testing the
   tuck where the lift left the cloth. A tuck tested on the unlifted surface misses the cloth that
   the lift's easing pushed into the plate.
-- **Ornaments on cloth.** A brooch sits square to the cloth's averaged normal, with its back on
-  the highest folds under it, then slides out along that normal until it overlaps no armour. Put
-  it where the cloth is: a disc half off the cowl's hem reads as floating on the breastplate. A
-  fastener joins what it fastens: draw the cloth onto the plate or the other garment at the pin
-  (a smooth falloff round the pin point) so the brooch visibly holds both.
+- **Ornaments on cloth.** A fastener (brooch, clasp) presses the cloth it pins against what lies
+  under it, so it touches both. Seated on the highest fold under it, a brooch stood 25 mm off the
+  breastplate. Slid clear of the gorget ring above it, it stood 8 mm off. Both read as floating.
+  - Draw the cloth onto the plate or garment at the pin with a smooth falloff round the pin point,
+    so the brooch visibly holds both.
+  - Lay the cloth flat under the footprint, a few mm off a plate and easing out beyond it. Do this
+    after any pass that pushes cloth off steel.
+  - Square the fastener to the plane of the surface under its whole footprint, not to the normal at
+    one point: a chest curves under a 5 cm disc.
+  - Rest it on the highest support under each point: cloth where the drape reaches, plate where it
+    does not. Let the wool give 1-2 mm and press the cloth under the disc.
+  - Move the pin rather than sliding the ornament out to clear a neighbouring rim.
+  - Put it where the cloth is: a disc half off the cowl's hem reads as floating.
+  - Judge the gap on a section through it. Against a curving plate a side view's silhouette hides
+    the gap or invents one.
 - **Belts and hanging gear.** Build each piece so it is held:
   - buckles as open frames with a prong lying on the strap;
   - pouches hung from the belt by loops, with flaps and studs;

@@ -57,6 +57,8 @@ report), weapon aiming against the posed body, and the cloth settle under stowed
 `assets/cloth_tools.py` finishes draped cloth: shrink-free smoothing, clearances that keep each
 vertex on its side, a collar rolled over a cloak and its sides lifted over the cloak's top edge,
 ornaments seated on the cloth, and a face-level overlap settle for plates as well as cloth.
+`assets/retarget_tools.py` retargets frames of reference clips onto the delivery skeleton for real
+test poses.
 
 Read `references/categories.md` for the asset's category before Phase 0. Read
 `references/rigging-animation.md` before Phase 6 and `references/delivery-and-acceptance.md`
@@ -333,6 +335,10 @@ Hands that hold things, with the tools in `assets/grasp_tools.py`:
 
 Bend elbows and knees about the bone's own hinge (a local rotation): a world-axis turn after the
 parent has turned twists the joint and drives the elbow plate into the sleeve.
+
+Take the extreme poses from reference motion where a clip exists (the user's clips, Mixamo, motion
+capture) and retarget real frames with `assets/retarget_tools.py`. A few whole-bone rotations with
+nothing else moving read as cartoonish, and the sheet is what the user sees of the rig.
 
 Gate:
 - The extreme-pose sheet (`review_render.py --action <pose_action> --frame N` for every pose the
