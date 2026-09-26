@@ -199,7 +199,8 @@ Record its source and licence in `ref/` and in the manifest.
       the collar, even at the base of the neck, read as slits "like someone cut the fabric with
       scissors". Test it: a ray out from the neck and one straight up from each top-edge vertex of
       the cloak must meet the collar. A count above zero is a defect, not something to judge
-      invisible from the viewer's cameras;
+      invisible from the viewer's cameras. Raise the corners under the collar; widening the collar
+      out to where they were grew lobes like bat wings;
     - tuck the collar's hem a few mm into the cloak's thickness, eased over its last few rows, so
       its folds run into the cloak's. Laid 1.5 mm off the cloak, its thin decimated edge still
       showed as a line. Keep the passes after the tuck from pushing it back out.

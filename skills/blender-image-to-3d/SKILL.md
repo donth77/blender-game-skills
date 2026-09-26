@@ -408,6 +408,11 @@ query reaches every fetch, the manifest included: fetched without it, the label 
 time over a new model. A reviewer judged a build that had been replaced, and nothing on the page
 said which one it was.
 
+Before exporting a new build, copy the current exports beside a copy of the viewer pointed at them,
+so the reviewer can open the old and new builds side by side. Read your own captures of the new build
+at full size before sending it. A before/after sheet at two-thirds scale hid dark blotches on a
+collar, a pointed flap at each shoulder and a dark crease line, all plain in the full-size captures.
+
 ## Phase 10: acceptance and handover
 
 Run the checklist in `references/delivery-and-acceptance.md` section 4. Produce

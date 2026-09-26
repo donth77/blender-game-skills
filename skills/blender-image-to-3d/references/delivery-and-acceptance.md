@@ -76,12 +76,15 @@ low object and write the result into its UV islands. On a whole cloak object, a 
 rays inside the thick cloak's gathered top (its low grid lay up to 8 mm inside the finer high one)
 and baked its inner face, black. Where a pin or fastener presses the drape into layers 1-3 mm apart, no
 cage works: bake that cloth's AO from its own surface (no high source) and leave its normal map flat, so
-it shades from its geometry. Two traps in that self-bake:
+it shades from its geometry. Three traps in that self-bake:
 - Hide the cloth's high copy. It lies within a millimetre and every AO ray met it: black.
 - A single sheet shown from both sides holds one AO value per texel. Bake each side (faces made
   consistent across the sheet, then all reversed) and keep the lighter. The side that shows is the open
   one, and a crease stays dark on both. Turning each face outward on its own flipped neighbours in the
   folds and baked black mottling.
+- A thin crease, where the pin draws the drape down, bakes as a crisp dark line. Blur the AO over the
+  cloth's own texels before any floor or remap: a normalised blur within its UV mask keeps the
+  neighbours' values out. 3 px at 2k turned the line into soft shading.
 
 When a dark patch shows in the textured view and not in clay, look at the bake and the UVs, not the
 mesh. Smart projection over a whole object cut a rolled collar along its crests into slivers 1-10
