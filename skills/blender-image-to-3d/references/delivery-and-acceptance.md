@@ -83,7 +83,14 @@ it shades from its geometry. Two traps in that self-bake:
   one, and a crease stays dark on both. Turning each face outward on its own flipped neighbours in the
   folds and baked black mottling.
 
-When a dark patch shows in the textured view and not in clay, look at the bake, not the mesh.
+When a dark patch shows in the textured view and not in clay, look at the bake and the UVs, not the
+mesh. Smart projection over a whole object cut a rolled collar along its crests into slivers 1-10
+texels wide, packed among the cloak's islands. Every map was right texel by texel, yet texture
+filtering blended the slivers with their neighbours (the cloak's dark inner face) into blotches on the
+collar. Unwrap such a part as one island (angle based). A ring-shaped island leaves its hole empty in
+the packing and cost the rest of the atlas 12 % of its texels; cut behind the neck, the collar unwrapped
+as a V that packed worse. Giving the collar (plain wool, flat normal map) 0.7 of the density returned the
+cloak's texels.
 
 ## 3. Budgets and LOD policy
 

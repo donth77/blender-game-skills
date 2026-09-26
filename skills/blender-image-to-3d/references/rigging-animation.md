@@ -389,7 +389,10 @@ with gear stowed over the cloak there is often nowhere for the chain to go. List
 for the runtime cloth or spring solver's arm capsules instead of bending the chain through
 something else.
 
-Draped garments at rest come from the cloth solver, not modelled tubes:
+A garment's rest shape is designed over the body or draped by the cloth solver, never modelled as
+tubes. For clean fabric at the neck (a cowl, a collar, a hood lying down), design it on a membrane
+over the support (categories.md section 2). A solver's drape of a bunched cowl stayed crumpled
+however it was finished. With the solver:
 - a pleated start shape above the collision copies, pinned where the garment is held;
 - a fixed frame rate and frame count;
 - the settled mesh kept as the rest shape.

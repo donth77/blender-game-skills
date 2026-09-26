@@ -80,7 +80,8 @@ user's viewport disagree.
 - The cloth solver is not reproducible between runs. Two builds of the same code settled a cowl
   up to 13 mm apart (median under 1 mm), and later passes built on it still varied when the settle
   was cached and reused. Every rebuild re-rolls the fine folds, so re-measure what sits on the
-  cloth (fasteners, straps) after each one, and do not promise identical folds.
+  cloth (fasteners, straps) after each one, and do not promise identical folds. A garment designed
+  over the body (categories.md section 2) is the same every build.
 
 ## 3. Review and look-development lessons
 

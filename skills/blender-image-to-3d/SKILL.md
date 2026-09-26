@@ -54,9 +54,10 @@ as inferred. Say so when a single image forces inference; do not present a guess
 `assets/grasp_tools.py` holds the hand tools for Phase 6: the grip seat (where a handle rests in
 the open hand), the grasp (every phalanx wrapped onto the weapon's mesh, with a per-segment gap
 report), weapon aiming against the posed body, and the cloth settle under stowed gear.
-`assets/cloth_tools.py` finishes draped cloth: shrink-free smoothing, clearances that keep each
-vertex on its side, a collar rolled over a cloak and its sides lifted over the cloak's top edge,
-ornaments seated on the cloth, and a face-level overlap settle for plates as well as cloth.
+`assets/cloth_tools.py` designs cloth at the neck on a membrane over the body and finishes draped
+cloth: shrink-free smoothing, clearances that keep each vertex on its side (a vertex beside a rim is
+outside), a collar rolled over a cloak and its sides lifted over the cloak's top edge, ornaments
+seated on the cloth, and a face-level overlap settle for plates as well as cloth.
 `assets/retarget_tools.py` retargets frames of reference clips onto the delivery skeleton for real
 test poses.
 
@@ -235,7 +236,7 @@ author coverage cuts on the export copy and test every equipment combination for
 Characters: `references/categories.md` section 2 covers:
 - faces and hands fitted from anatomical base meshes;
 - boots on a real last, and joint armour;
-- cloth draped by the solver;
+- cloth at the neck designed over the body, and the hem;
 - belts and hanging gear;
 - the neck join, armour fitted to the garment underneath, and strand hair colliders and shading.
 
@@ -426,6 +427,12 @@ Do not describe the asset as matching the reference where a measurement says oth
   part in every pose for its shape, where it sits, which way it faces and what it covers. A fix for
   crushed pauldrons kept their shape and cut their contacts by 80 percent, and left one facing
   backwards and another hanging down the arm.
+- A check's count above zero is a defect, not a number to explain away. Garment edges a coverage
+  test found uncovered, judged invisible from the viewer's cameras, were the next thing the reviewer
+  named: slits "like someone cut the fabric with scissors".
+- When tuning a method has failed the same complaint twice, change the method. A solver-draped cowl
+  stayed "a crumpled mess" through changes to its fabric, stiffness and smoothing; designing its
+  shape over the body fixed it.
 - Attached things touch what holds them. Held things are gripped by the mesh of the hand, not
   placed near it, and aimed so they clear the body in every pose.
 - When the user values realism over a budget, move the tier and record why. A triangle cap that

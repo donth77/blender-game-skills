@@ -156,49 +156,62 @@ Record its source and licence in `ref/` and in the manifest.
   keep it a straight band down the limb (one straight radius profile per column), and seat edge
   trims and rivets on the fitted plate by ray from its axis, not on the designed surface, or they
   float and cut through. Finish with a face-level overlap settle (`cloth_tools.settle_faces`).
-- **Cloth at the neck.** Stacked scarf tubes read as fake. Drape cowls, scarves and hoods with
-  Blender's cloth solver: a pleated tube pinned under the jaw falls onto collision copies of the
-  neck, gorget, pauldrons and cloak (the same builders at low detail). Pin the frame rate so the
-  settle is reproducible, and keep the settled shape as the rest mesh. Then finish it
-  (`assets/cloth_tools.py`):
-  - Taubin-smooth it. The solver's small crumples read as crushed paper on the delivery mesh; a
-    plain Laplacian shrinks the cowl onto the neck.
-  - Put the clearances back after smoothing, each vertex along the nearest surface's own normal
-    so it keeps its side. Pushing everything "away from the body" drags cloth the solver tucked
-    inside a gorget's collar through the plate.
-  - Give steel a larger gap than soft layers, in the solver's collision thickness and in the
-    clearance pass (about 9 mm against 4 mm for a cowl with 18 mm faces). A face between two
-    clear vertices still cuts across a plate's rim when the gap is smaller than its sag over the
-    rim, and decimating the cloth for LOD0 makes it worse.
-  - Follow the reference's overlap order. The concept's collar lies over the cloak, whose top
-    rises into it: roll the collar out over the cloak where the solver left it under, eased over
-    the faces. A cloak lowered away from the collar reads as "floating, not connected", and a
-    cloak top cut straight across below the collar shows a band of armour between them: raise
-    the cloak along the shoulder line to the base of the neck under the collar.
-  - A cloak whose top gathers into the collar is one garment rolled over at the neck, not a hood
-    lying on the back. A collar given a hood's room and drop down the back settled as a bib with its
-    hem lying on the cloak, and a review read "two separate pieces of cloth: one for the hood and
-    one for the back". Instead:
-    - give the collar less fabric at the back (about two thirds of the sides' and front's) so it
-      settles as a roll at the nape. The reviewer called even that roll "a wrinkled mess" and chose
-      smooth fabric over the concept's bunching: about a third, with extra smoothing over the back of
-      the settled cloth only, gives a smooth collar;
-    - run the cloak's top edge up under the roll everywhere; its corners beside the collar looked
-      "cut or sliced";
-    - tuck the collar's hem a few mm into the cloak's thickness, eased over its last few rows, so the
-      folds run into it. Laid 1.5 mm off the cloak, its thin, decimated edge still showed as a line.
-      Keep the passes after the tuck (clearances, the face settle) from pushing it back out.
-  - Simulating the collar and the cloak's top as one sheet, pinned at the jaw and on the cloak, did
-    not work: the collar's extra fabric fell into the sheet below and dragged it through the
-    backplate. Keep two pieces and lay them together.
-  - A real hood lying on the back falls as one broad, rounded drape. Give the solver's start shape its
-    extra room and drop evenly across the back (a plateau over about 60 degrees either side), not
-    peaked at the centre, which falls as a tongue.
-  - A closed collar's sides come round to the front of the neck over an open cloak and must pass
-    over the cloak's top edge, not through it (`cloth_tools.lift_over_edge`, after smoothing).
-  - Simulate once. Build the LODs from the finished high-detail cloth, and give ornaments seated on
-    it the high-detail placement. A second solver run in a later phase settles a few mm
-    differently: a brooch seated on it moved 13 mm, and the bake projected cloth onto it.
+- **Cloth at the neck.** Stacked scarf tubes read as fake. A cloth solver's drape of a bunched cowl
+  (a pleated tube pinned under the jaw, falling onto collision copies of the neck and armour) read
+  as "a crumpled mess" at the front and the back, however it was smoothed or stiffened, and it moved
+  1-3 cm between runs. Design the collar instead (`assets/cloth_tools.py`):
+  - Stretch a membrane over what it lies on. Along rays from a point in the neck column, take the
+    outermost of the neck, gorget, plates, pauldrons and cloak, plus their clearances measured
+    straight off each surface; blur it and lift it back so it never dips under them. It runs smooth
+    over rims, the cloak's top edge and its folds. Leave the head out above the jaw line and continue
+    the neck up as a column, or the collar climbs the face. Skip any cap that closes a garment's neck
+    hole.
+  - Lay the collar on the membrane: rows down each column at even arc lengths, from a ring under
+    the jaw line to the collar's width, each point moved along the membrane's normal by the
+    collar's height. Give it soft rolls (the upper lying on the lower, the crease rounded with a
+    smooth maximum) and folds as long waves. Vary the rolls a little round the neck: an even roll
+    reads as a tube.
+  - Push the rolls out along the normals of a blurred copy of the membrane, mixed with the ray from
+    the neck column. Where the neck meets the shoulders the membrane turns a corner tighter than a
+    3 cm roll: along the membrane's own normals, which converge there, the roll folded over itself
+    into a flap at each side. The rays spread and cannot fold. Orient normals against the ray only
+    where the membrane is not parallel to the rays, and check none points inward.
+  - Bring the last part of the collar at the sides and back down onto a tighter membrane over the
+    support (fewer blur passes). A hem bridging from the neck to a pauldron on the membrane leaves a
+    dark slot under it; landed on the support itself, it took each step (a cloak's side edge, a
+    plate's rim) as a jagged point. Keep the front drape on the membrane: landed on the gorget's
+    rims, it dented.
+  - Run the drape under a fastener. A brooch that must drag the hem 2 cm to its pin dents the cloth.
+  - Give steel a larger gap than soft layers (about 9 mm against 4 mm for a cowl with 18 mm faces).
+    A face between two clear vertices still cuts across a plate's rim when the gap is smaller than
+    its sag over the rim, and decimating the cloth for LOD0 makes it worse.
+  - Put clearances back with `keep_clear`, which counts a vertex as inside only when it lies straight
+    behind the nearest face. Read as a signed distance along the nearest face's normal, points 2-3 cm
+    beside a plate's rim or a cloak's corner came out inside and were shoved through them. The
+    pinches this left looked like more crumples.
+  - Follow the reference's overlap order. The concept's collar lies over the cloak, whose top rises
+    into it. A cloak lowered away from the collar reads as "floating, not connected". A cloak top cut
+    straight across below the collar shows a band of armour between them.
+  - A cloak whose top gathers into the collar is one garment rolled over at the neck. A collar lying on
+    the back like a hood read as "two separate pieces of cloth: one for the hood and one for the
+    back". Instead:
+    - run the cloak's top edge up under the collar everywhere, corners included. Corners beside
+      the collar, even at the base of the neck, read as slits "like someone cut the fabric with
+      scissors". Test it: a ray out from the neck and one straight up from each top-edge vertex of
+      the cloak must meet the collar. A count above zero is a defect, not something to judge
+      invisible from the viewer's cameras;
+    - tuck the collar's hem a few mm into the cloak's thickness, eased over its last few rows, so
+      its folds run into the cloak's. Laid 1.5 mm off the cloak, its thin decimated edge still
+      showed as a line. Keep the passes after the tuck from pushing it back out.
+  - A reviewer may choose smooth fabric over the concept's bunching ("can we deviate from the
+    concept art and smooth out the fabric there?"). Record it as a deviation from the user's
+    direction.
+  - If a loose, bunched drape is wanted after all, simulate once: pin the frame rate and keep the
+    settled shape as the rest mesh. Build the LODs from the finished high-detail cloth and seat
+    ornaments on that placement: a second solver run settled a few mm differently, a brooch moved
+    13 mm, and the bake projected cloth onto it. Finish it with Taubin smoothing (a plain Laplacian
+    shrinks it onto the neck) and the passes in `cloth_tools`. Simulating the collar and the cloak's
+    top as one sheet dragged the cloak through the backplate: keep two pieces and lay them together.
   - Do not clean up leftover intersections by pushing single vertices off whatever they touch in
     a loop. Where the cloth is caught between two obstacles it oscillates and grows spikes.
   - Review it with the cloth in its own colour: a triangle-pair count cannot tell a hidden tuck
@@ -211,6 +224,10 @@ Record its source and licence in `ref/` and in the manifest.
   cloth meeting one of its plates within the cloth's thickness plus the clearance), testing the
   tuck where the lift left the cloth. A tuck tested on the unlifted surface misses the cloth that
   the lift's easing pushed into the plate.
+- **Hems.** A tattered hem needs the resolution for its tears. At a cloak grid's 2-3 cm columns, a
+  tear narrower than three columns is a V cut, and a row of them read as fabric "cut with scissors".
+  Give a coarse grid an uneven edge in long waves (longer where the reference hangs lower) and leave
+  the fraying to the texture, or add a finer band of columns along the hem for the tears.
 - **Ornaments on cloth.** A fastener (brooch, clasp) presses the cloth it pins against what lies
   under it, so it touches both. Seated on the highest fold under it, a brooch stood 25 mm off the
   breastplate. Slid clear of the gorget ring above it, it stood 8 mm off. Both read as floating.

@@ -1,10 +1,22 @@
 """
 CLOTH TOOLS
-Finishing passes for draped cloth (cowls, scarves, hoods, cloaks) after Blender's cloth solver has
-settled it, and for rigid ornaments pinned on it. Copy next to the build scripts and import it (it
-only needs numpy, bpy and mathutils):
+Cloth at the neck (cowls, scarves, hoods, a cloak's top) designed over the body, finishing passes for
+cloth from Blender's cloth solver, and placing rigid ornaments pinned on cloth. Copy next to the build
+scripts and import it (it only needs numpy, bpy and mathutils).
+
+Designed cloth (clean fabric; the same every build):
 
   import cloth_tools as C
+  el = np.radians(np.arange(-45.0, 82.0, 0.5))                  # down the chest and back .. up the neck
+  M = C.support_envelope(neck_point, [(soft, 0.004), (steel, 0.009), (cloak, 0.004)], 128, el, usable)
+  E = C.membrane(M, elevations=el, column=True)                 # smooth over rims, edges and folds
+  Q, N = C.envelope_surface(neck_point, E, el)                   # points, and directions to push out
+  # per column: points down Q at even arc lengths from the collar's top to its width, each moved
+  # along N by the collar's height there (rolls, folds); the hem at the sides and back brought down
+  # onto a tighter membrane, C.membrane(M, passes=25, ...); then keep_clear and the checks below
+
+Solver cloth:
+
   V = C.taubin(V, F, fixed=range(ring * 2))                 # soft folds, the pinned rows kept
   V = C.keep_clear(V, [(soft_tree, 0.004), (steel_tree, 0.009), (cloak_tree, 0.004)])
   V = C.roll_over(V, F, cloak_tree, axis_xy=(0.0, 0.02))     # the collar over the cloak's top
@@ -13,32 +25,41 @@ only needs numpy, bpy and mathutils):
   for _ in range(3):                                          # the collar's sides over the cloak's
       V = C.lift_over_edge(V, F, cloak_tree, cloak_top_xz)    # top edge, not through it
       V = C.keep_clear(V, [...])
+
+Both:
+
   M = C.slide_clear(brooch_verts, brooch_polys, M, normal, armour_tree)   # a pinned ornament
   C.settle_faces(cowl_object, [armour_tree, cloak_tree], away)            # delivered faces, last
 
 What each pass does and why:
+- support_envelope, membrane, envelope_surface: a solver's drape of a bunched cowl read as "a crumpled
+  mess" however it was smoothed or stiffened, and moved 1-3 cm between runs. Design it instead on a
+  membrane: along rays from a point in the neck column, the outermost support plus its clearance
+  (measured straight off every surface, not along the ray: oblique plates and rims beside the ray
+  keep theirs), blurred and lifted back so it never dips under the support. Reject hits the cloth
+  does not lie on with `usable` (the head above the jaw line; a cap closing a garment's neck hole),
+  and continue the neck up as a column above its last hit, or the rows run up the face.
 - taubin: the solver leaves small crumples that read as crushed paper on a delivery mesh. Taubin
   smoothing (a Laplacian step in, then a slightly larger one out) removes them without shrinking
-  the cloth; a plain Laplacian pulls a cowl tight onto the neck. The fold pattern is low
-  frequency and stays.
-- keep_clear: smoothing moves vertices a few mm, so put the solver's clearances back afterwards,
-  along the nearest surface's own normal. That keeps each vertex on the side the solver left it
-  (cloth tucked inside a gorget's collar stays inside). Never push everything "away from the body":
-  it drags the tucked cloth through the plate.
-- Gaps by material: give steel a larger gap than soft layers, in the solver (collision thickness)
-  and here (about 9 mm against 4 mm for a cowl with 18 mm faces). A face between two vertices
-  that clear a plate's rim still cuts across the rim when the gap is smaller than the face's sag
-  over it. Decimating the cloth for LOD0 makes faces larger and the cutting worse.
+  the cloth; a plain Laplacian pulls a cowl tight onto the neck.
+- keep_clear: put clearances back after any pass that moves vertices. A vertex is inside a surface
+  only when it lies straight behind the nearest face and shallow; it then moves out along the face's
+  normal and keeps its side (cloth tucked inside a gorget's collar stays inside). Beside a plate's
+  rim or a thin shell's edge the nearest face can face sideways or down: read as a signed distance
+  along its normal, points 2-3 cm outside came out inside and were shoved through the steel and a
+  cloak's corner, as pinches in the cloth. Never push everything "away from the body": it drags
+  tucked cloth through the plate.
+- Gaps by material: give steel a larger gap than soft layers (about 9 mm against 4 mm for a cowl
+  with 18 mm faces). A face between two vertices that clear a plate's rim still cuts across the rim
+  when the gap is smaller than the face's sag over it. Decimating the cloth for LOD0 makes it worse.
 - roll_over: the reference decides the overlap order. A collar that lies over the cloak (the
   cloak rising into it) is rolled out over the cloak's top where the solver left it underneath,
   the move eased over the faces so the cloth rolls over the edge instead of folding across it.
-- lift_over_edge: a closed collar (cowl, scarf, hood) over an open garment hanging behind it (a
-  cloak): the collar's back lies on the cloak, but its sides come round to the front of the neck,
-  and below the cloak's top edge that path runs through the cloak. Cloth that the solver started
-  behind the cloak stays there, and smoothing pulls the sides back through after roll_over. Lift
-  the cloth of every face that crosses the cloak, on its body side, above the cloak's top edge,
-  eased over the collar, so the sides rest on the edge. Lowering the cloak's top under them
-  instead turns the cloak into a bib and leaves the collar nothing to rest on.
+- lift_over_edge: a closed collar over an open garment hanging behind it (a cloak): its sides come
+  round to the front of the neck, and below the cloak's top edge that path runs through the cloak.
+  Lift the cloth of every face that crosses the cloak, on its body side, above the cloak's top
+  edge, eased over the collar. Lowering the cloak's top under them instead turns the cloak into a
+  bib and leaves the collar nothing to rest on.
 - settle_faces: the last word, for plates as well as cloth. Clearances hold at the vertices, but a
   face between two of them can still cut a curved neighbour. Intersect the object's evaluated
   surface (thickness and bevel included) with the neighbours and move the crossing faces' own
@@ -57,6 +78,7 @@ Check the result with a rest-pose overlap inventory per part pair and with rende
 cloth has its own colour: a triangle-pair count cannot tell a hidden tuck from steel showing
 through.
 """
+import math
 import numpy as np
 from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
@@ -84,21 +106,112 @@ def taubin(V, F, iters=10, lam=0.5, mu=-0.53, fixed=()):
     return P
 
 
-def keep_clear(V, trees_gaps, reach=0.06, rounds=1):
-    """Each vertex moved off each (BVHTree, gap) pair's surface to at least `gap`, along the nearest
-    face's normal (it keeps its side of that surface)."""
+def keep_clear(V, trees_gaps, reach=0.06, rounds=1, inside=0.012):
+    """Each vertex moved off each (BVHTree, gap) pair's surface to at least `gap`. Inside (straight
+    behind the nearest face, within about 25 degrees of its normal, and less than `inside` deep): out
+    along the face's normal, keeping its side. Outside but nearer than `gap`: straight away from the
+    nearest point. A vertex beside a rim or a shell's edge is outside, however its nearest face faces."""
     P = np.array(V, dtype=float)
     for _ in range(rounds):
         for tree, gap in trees_gaps:
             for i, p in enumerate(P):
                 q = Vector(tuple(p))
-                loc, n, _, _ = tree.find_nearest(q, reach)
+                loc, n, _, d = tree.find_nearest(q, reach)
                 if loc is None:
                     continue
-                s = (q - loc).dot(n)
-                if s < gap:
-                    P[i] = tuple(q + n * (gap - s))
+                v = q - loc
+                if d < 1e-7:
+                    P[i] = tuple(q + n * gap)
+                    continue
+                c = v.dot(n) / d
+                if c < -0.9 and d < inside:
+                    P[i] = tuple(q + n * (gap + d))
+                elif d < gap:
+                    P[i] = tuple(q + (v / d * (gap - d) if c > -0.9 else n * (gap + d)))
     return P
+
+
+def ray_dir(a, ph):
+    """Unit ray at ring angle a (0 towards -Y, the character's front; pi/2 towards +X) and elevation ph."""
+    return Vector((math.sin(a) * math.cos(ph), -math.cos(a) * math.cos(ph), math.sin(ph)))
+
+
+def support_envelope(origin, trees_gaps, n_angles, elevations, usable=None, reach=0.6):
+    """M[i, k]: distance from `origin` along ray (2 pi i / n_angles, elevations[k]) to the outermost surface
+    of the (BVHTree, gap) pairs plus that pair's gap, the gap measured straight off every surface (the
+    point moves out along the ray until no surface is nearer than its gap). usable(pair index, point,
+    angle) -> bool rejects hits and near points the cloth does not lie on. 0 where a ray meets nothing."""
+    M = np.zeros((n_angles, len(elevations)))
+    for i in range(n_angles):
+        a = 2 * math.pi * i / n_angles
+        for k, ph in enumerate(elevations):
+            D = ray_dir(a, ph)
+            best = 0.0
+            for j, (tree, gap) in enumerate(trees_gaps):
+                h = tree.ray_cast(origin + D * reach, -D, reach)
+                if h[0] is not None and (usable is None or usable(j, h[0], a)):
+                    best = max(best, reach - h[3] + gap)
+            if best > 0:
+                for _ in range(30):
+                    p = origin + D * best
+                    worst = 0.0
+                    for j, (tree, gap) in enumerate(trees_gaps):
+                        loc, _, _, dist = tree.find_nearest(p, gap)
+                        if loc is not None and (usable is None or usable(j, loc, a)):
+                            worst = max(worst, gap - dist)
+                    if worst <= 2e-4:
+                        break
+                    best += max(worst, 0.0005)
+            M[i, k] = best
+    return M
+
+
+def _blur(X, passes_a=1, passes_p=4):
+    k = (1.0, 4.0, 6.0, 4.0, 1.0)
+    for _ in range(passes_a):                          # periodic round the axis
+        X = sum(w * np.roll(X, s, axis=0) for w, s in zip(k, (-2, -1, 0, 1, 2))) / 16.0
+    for _ in range(passes_p):                          # clamped up and down
+        Pd = np.pad(X, ((0, 0), (2, 2)), mode="edge")
+        X = sum(w * Pd[:, 2 + s:2 + s + X.shape[1]] for w, s in zip(k, (-2, -1, 0, 1, 2))) / 16.0
+    return X
+
+
+def membrane(M, passes=60, elevations=None, column=False):
+    """A smooth surface over the envelope M that never dips under it: rays that met nothing take their
+    neighbours' value up and down, then M is blurred and lifted back to M `passes` times. column (with
+    elevations): above each angle's last hit the support goes on up as a vertical column of that radius
+    (a neck whose head was left out)."""
+    M = np.array(M, dtype=float)
+    for i in range(M.shape[0]):
+        ok = np.flatnonzero(M[i] > 0)
+        if column and len(ok):
+            k = ok[-1]
+            M[i, k + 1:] = M[i, k] * math.cos(elevations[k]) / np.cos(elevations[k + 1:])
+            ok = np.flatnonzero(M[i] > 0)
+        if len(ok) and len(ok) < M.shape[1]:
+            M[i] = np.interp(np.arange(M.shape[1]), ok, M[i][ok])
+    E = M.copy()
+    for _ in range(passes):
+        E = np.maximum(_blur(E), M)
+    return np.maximum(_blur(E, 1, 2), M)
+
+
+def envelope_surface(origin, E, elevations, blur=12, radial=1.0):
+    """(Q, N): the membrane's points (angles x elevations x 3) and the unit directions to push cloth out
+    along: the normals of the membrane blurred `blur` passes up and down, plus `radial` of the ray from
+    origin. A membrane's own normals converge at a concave corner (a neck meeting the shoulders) and a
+    roll higher than the corner's radius folds over itself there; the rays spread."""
+    n = E.shape[0]
+    D = np.array([[tuple(ray_dir(2 * math.pi * i / n, ph)) for ph in elevations] for i in range(n)])
+    Q = np.array(tuple(origin)) + D * E[..., None]
+    Qn = np.array(tuple(origin)) + D * (_blur(E, 1, blur) if blur else E)[..., None]
+    N = np.cross(np.gradient(Qn, axis=1), (np.roll(Qn, -1, axis=0) - np.roll(Qn, 1, axis=0)) * 0.5)
+    N *= np.sign((N * D).sum(axis=2))[..., None]
+    N /= np.linalg.norm(N, axis=2)[..., None] + 1e-12
+    if radial:
+        N = N + radial * D
+        N /= np.linalg.norm(N, axis=2)[..., None] + 1e-12
+    return Q, N
 
 
 def roll_over(V, F, tree, axis_xy, clear=0.006, depth=0.06, ease=16):
