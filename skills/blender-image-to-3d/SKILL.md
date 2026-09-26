@@ -402,8 +402,9 @@ weapons through the sockets with identity transforms, and scrubs the pose-test a
 the armature alone. Users find problems there that static sheets hide. GLTFLoader strips "." from
 node names (`SOCKET_hand.R` arrives as `SOCKET_handR`; the original name is in `userData.name`).
 Put the build on the page (the manifest's `generated` time) and give each review a new link whose
-query reaches every fetch. A reviewer judged a build that had been replaced, and nothing on the
-page said which one it was.
+query reaches every fetch, the manifest included: fetched without it, the label can show an old
+time over a new model. A reviewer judged a build that had been replaced, and nothing on the page
+said which one it was.
 
 ## Phase 10: acceptance and handover
 
