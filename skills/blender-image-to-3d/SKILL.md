@@ -353,7 +353,8 @@ Gate:
   sheathed, stowed). Check the sheathed state as the engine shows it: the weapon asset attached to
   its hip socket at the bind pose, intersecting nothing.
 - `scripts/pose_overlap.py` on the sheet's file: body pairs against the bind position, weapon and
-  carried-gear pairs counted absolutely, no weapon pair except a glove on its own grip.
+  carried-gear pairs counted absolutely, no weapon pair except a glove on its own grip. Counts only
+  see crossings: read each part on a helper bone for where it sits and which way it faces as well.
 - `validate.py` shows no unweighted or over-influenced vertices.
 - Each socket is tested with its real attachment in at least one pose.
 
@@ -400,6 +401,9 @@ For a web target, hand over a small three.js viewer. It loads the exported GLBs,
 weapons through the sockets with identity transforms, and scrubs the pose-test action exported on
 the armature alone. Users find problems there that static sheets hide. GLTFLoader strips "." from
 node names (`SOCKET_hand.R` arrives as `SOCKET_handR`; the original name is in `userData.name`).
+Put the build on the page (the manifest's `generated` time) and give each review a new link whose
+query reaches every fetch. A reviewer judged a build that had been replaced, and nothing on the
+page said which one it was.
 
 ## Phase 10: acceptance and handover
 
@@ -416,6 +420,10 @@ Do not describe the asset as matching the reference where a measurement says oth
 - Measure, then model. Every constant comes from the brief or is marked inferred.
 - Passing gates is a floor, not the finish. Silhouettes and proportions can pass while the face,
   hands, feet, joints and attachments fail a close look; review close-ups from Phase 3 on.
+- A fix answers for the whole part, not only the fault named. Before reporting one, look at the
+  part in every pose for its shape, where it sits, which way it faces and what it covers. A fix for
+  crushed pauldrons kept their shape and cut their contacts by 80 percent, and left one facing
+  backwards and another hanging down the arm.
 - Attached things touch what holds them. Held things are gripped by the mesh of the hand, not
   placed near it, and aimed so they clear the body in every pose.
 - When the user values realism over a budget, move the tier and record why. A triangle cap that

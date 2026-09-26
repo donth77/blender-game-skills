@@ -142,10 +142,12 @@ Rules that kept a one-piece glove, its plates and hanging gear clean:
 - **Padding under a rigid shell.** The sleeve under a helper-driven pauldron rides the same helper
   where the plates cover it, and hands over to the limb in the bare gap between two plates (the
   lowest lame and the elbow cop). The gap needs an edge loop at each end. With a single ring in it,
-  some face under one plate or the other had to shear, and showed through that plate. Below the
-  gap, each ring rides one twist step. Blend the ring nearest a bent joint a little into the next
-  bone too (a wider blend about the elbow), or its full width meets the forearm plate's rim in the
-  crook.
+  some face under one plate or the other had to shear, and showed through that plate. From the gap
+  down to the elbow, each ring rides one twist step. The gap's first row also takes the shell's lag
+  behind the limb (its top ring sat up to 4.4 cm off the arm's swing with the arm raised 138
+  degrees), so it needs its length: measure that offset before moving rings up to fit more steps.
+  Blend the ring nearest a bent joint a little into the next bone too (a wider blend about the
+  elbow), or its full width meets the forearm plate's rim in the crook.
 - **Collars under a neighbouring plate.** Padding tucked under a plate on another bone (a
   sleeve's collar under the gorget ring) keeps the blend it had. Moved onto the pauldron's helper,
   it rode into the ring even in the idle pose.
@@ -215,6 +217,12 @@ Measure the sheet with `scripts/pose_overlap.py`:
 
   An elbow strap half hidden by a twisted sleeve's outline looked like a poke-through at close
   zoom. The rays put it behind the arm.
+- **Where rigid parts sit.** A shell spun round the limb or slid off its seat crosses nothing. For
+  each part on a helper, read per pose the twist it took (a shoulder plate takes none), how far it
+  moved from its seat (the cap's crown from the top of the shoulder), and whether the layer it
+  covered now shows. The first fix for crushed pauldrons cut their contacts from 1582 to 320 while
+  one faced backwards and another hung down the arm, baring a slim sleeve that had only ever been
+  seen under the cap.
 
 Pass criteria:
 - no collapsed volume at joints;
