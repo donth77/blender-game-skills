@@ -70,6 +70,15 @@
         "ref/knight_front.png",
         "ref/knight_side.png"
       ]
+    },
+    {
+      "id": 9,
+      "prompt": "In some poses, especially 2 and 5, the shoulder armor is extremely bent and appears crushed as if there isn't even anything inside of the armor. That does not appear realistic at all, please fix.",
+      "expected_output": "diagnosis that the plates share the padding's blended clavicle-to-arm weights, so linear blend skinning bends the rigid shell; the pauldron made one rigid shell on a helper bone (clavicle parent, the upper arm's rest orientation, Copy Rotation of a fraction of the upper arm's turn) with the pivot and fraction chosen by measured contacts across every test pose, per-plate helpers rejected when the plates are not built to slide; the sleeve under the plates riding the helper and handing over to the arm in the bare gap between the lowest lame and the elbow plate, with an edge loop added at each end of that gap on the delivery meshes only (the simulation colliders and fitting layers unchanged); no new contact in the idle; the cloak lifted by the raised pauldron; the runtime helper rule in the manifest using the rest rotations; before/after close-ups of both shoulders in the named poses and intersection counts",
+      "files": [
+        "ref/knight_front.png",
+        "ref/knight_side.png"
+      ]
     }
   ]
 }

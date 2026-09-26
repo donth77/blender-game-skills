@@ -259,7 +259,11 @@ notes: https://docs.blender.org/manual/en/latest/modeling/meshes/retopology.html
 a clean base cage with loops at every joint (a skin-chain mesh at Subdivision 1 already has
 them), Shrinkwrap to the HIGH form, Subdivision 1, then edit loops at joints and creases.
 Rigid parts and rubble can use controlled Decimate; hero shoulders, hands, faces, hinges and
-simulated cloth get deliberate loops.
+simulated cloth get deliberate loops. Padding between rigid plates on different bones needs a loop
+at each plate's edge, so it can hand over from one bone to the other in the bare gap. When loops
+are added late, change only the delivery meshes. Copies that other steps build from the same
+builders (a cloth solver's colliders, the layer plates are fitted to) keep their old layout, or the
+approved folds and plate fits move.
 
 Quads in the source, triangulated delivery; lock the triangulation before baking so shading does
 not change later. Run the cleanup: doubles, stray islands, zero-area faces, flipped normals,
@@ -321,8 +325,9 @@ deformation skeleton in RIG_DEF from the rig family in `references/rigging-anima
 controls in RIG_CTRL, real pivots for every hinge, wheel, door and turret, sockets in SOCKETS
 with the axis convention (+Y forward of the attachment, +Z up). Bind every deforming piece to the
 same skeleton, normalise weights, four influences per vertex as the delivery target, rigid armour
-to one bone. Apply scale and rotation before binding; never apply an Armature modifier as
-cleanup.
+to one bone. A plate that spans a joint (a pauldron, a couter) rides a helper bone that takes part
+of the joint's turn; the padding's blended weights bend a rigid shell and read as crushed. Apply
+scale and rotation before binding; never apply an Armature modifier as cleanup.
 
 Hands that hold things, with the tools in `assets/grasp_tools.py`:
 - Seat each hand socket where the handle rests in the open hand, at the base of the fingers

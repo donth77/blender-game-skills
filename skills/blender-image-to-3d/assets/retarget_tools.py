@@ -43,7 +43,8 @@ What each step does and why:
   until its cloth comes within 1 cm of capsule proxies of the legs, skirt and back and of the gear
   hung on the body (a scabbard, its straps), measured against rest (never deeper than it lay at
   rest). A fixed swing added to a clip whose torso already leans forward flies the cloak out like
-  a flag.
+  a flag. Once the arms are final, let plates the arm raised (pauldrons) lift the cloth lying over
+  them, then hang the segments below again.
 - Name each pose after what its frame shows in a render of the clip, not after the clip's title:
   "Attack" at 60 percent was the follow-through of a sweeping cut, not a thrust.
 - Expect realistic motion to find deformation limits the synthetic poses hid (hip skirts and

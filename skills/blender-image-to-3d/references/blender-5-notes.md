@@ -74,7 +74,13 @@ user's viewport disagree.
   kinematics).
 - The glTF exporter samples constraint results into exported actions. A helper bone driven by
   Copy Rotation arrives in three.js with its half turn baked into the pose action; the rest pose
-  carries no constraint, so write the runtime rule into the manifest.
+  carries no constraint, so write the runtime rule into the manifest. A glTF joint's local
+  quaternion includes its rest rotation: take the fraction of the target's change from rest
+  (rigging-animation.md section 1), not of its raw quaternion.
+- The cloth solver is not reproducible between runs. Two builds of the same code settled a cowl
+  up to 13 mm apart (median under 1 mm), and later passes built on it still varied when the settle
+  was cached and reused. Every rebuild re-rolls the fine folds, so re-measure what sits on the
+  cloth (fasteners, straps) after each one, and do not promise identical folds.
 
 ## 3. Review and look-development lessons
 

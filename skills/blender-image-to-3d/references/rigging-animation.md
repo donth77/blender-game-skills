@@ -44,10 +44,36 @@ at the elbow and knee:
 - carrying the couter or knee cop, with the upper lame on the upper bone and the lower lame on the
   lower bone.
 
-A cop on one bone either stays behind the joint or swings into the limb. glTF carries no
-constraints:
-- The exporter samples the helper's turn into exported actions.
-- A pose made at runtime must set `helper.quaternion = identity.slerp(child.quaternion, 0.5)`.
+A cop on one bone either stays behind the joint or swings into the limb.
+
+Shoulder armour (a pauldron or spaulder: a cap and lames) is one rigid shell on its own helper:
+- parented to the clavicle, with the upper arm's direction and roll;
+- turned by Copy Rotation, local to local, of about 0.9 of the upper arm's rotation;
+- pivoting part of the way from the shoulder joint up to the cap's crown.
+
+Weighted like the padding under it (clavicle to upper arm by distance down the arm), the plates
+bent through their middles with the arm raised, and a review called them "extremely bent and
+crushed as if there isn't even anything inside of the armor". Linear blend skinning bends any
+rigid shell that spans two bones. The pivot trades two faults:
+- at the joint, the cap's inner edge dives into the neck and breastplate as the arm rises;
+- at the crown, the shell slides off the shoulder (8.9 cm with an arm raised 138 degrees);
+- halfway kept both small.
+
+One fraction for every direction still drove the cap's front edge into the breastplate's side with
+the arm swung far back. If the poses reach that, limit the helper's swing there, and have the engine
+apply the same limit.
+
+Give each plate its own helper only if the plates are built to slide: shells about one centre with
+room between them. Lames nested 2.5 mm apart as bands round the arm crossed each other under any
+difference in turn, even in the idle pose.
+
+glTF carries no constraints:
+- The exporter samples each helper's turn into exported actions.
+- A pose made at runtime must drive the helper from its target's change from rest:
+  `helper.quaternion = helperRest * slerp(identity, targetRest^-1 * target.quaternion, f)`, with
+  the rest (bind) local rotations stored at load. The helper shares its target's parent and rest
+  orientation, as Blender's local Copy Rotation assumes. `identity.slerp(target.quaternion, f)`
+  is only right when the rest rotation is the identity.
 - Write that note into the manifest. Quadruped: spine chain from
 pelvis through neck and head, four limbs with scapula, shoulder, elbow, carpus and hip, stifle,
 hock, plus tail chain. Winged: humerus, radius, metacarpal, digit chains per wing with membrane
@@ -91,6 +117,13 @@ Rules that kept a one-piece glove, its plates and hanging gear clean:
   two move together when the thigh lifts.
 - **Cloaks.** Keep them on their own chains. Blending a cloak into the shoulder bones where it
   rests on a pauldron dragged its edge into the backplate whenever an arm moved forward.
+- **Padding under a rigid shell.** The sleeve under a helper-driven pauldron rides the same helper
+  where the plates cover it, and hands over to the limb in the bare gap between two plates (the
+  lowest lame and the elbow cop). The gap needs an edge loop at each end. With a single ring in it,
+  some face under one plate or the other had to shear, and showed through that plate.
+- **Collars under a neighbouring plate.** Padding tucked under a plate on another bone (a
+  sleeve's collar under the gorget ring) keeps the blend it had. Moved onto the pauldron's helper,
+  it rode into the ring even in the idle pose.
 
 ## 3. Extreme-pose sheet
 
@@ -299,6 +332,11 @@ carry it through the item. `grasp_tools.settle_chain` turns each chain bone forw
 vertices clear the item, and passes the turn it gave up to the bone below. The cloth then folds
 under the item's edge and still clears the legs. Test against everything that stands off the
 item's back (rims, buckles, straps), not only its board or body.
+
+A plate the arm raises lifts the cloth lying over it: a rigid pauldron rose through the cloak
+when the sword arm swung out. Test the cloth against the posed plates once the arm is final (after
+any aim search that turns the humerus). Turn the chain's top bone back until its cloth clears, then
+hang the bones below again (`grasp_tools.settle_chain` with a lifting axis and step).
 
 A bone chain cannot keep a cloak that hangs over the shoulders off an arm swung back into it, and
 with gear stowed over the cloak there is often nowhere for the chain to go. List those contacts
