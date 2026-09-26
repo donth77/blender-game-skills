@@ -326,8 +326,9 @@ controls in RIG_CTRL, real pivots for every hinge, wheel, door and turret, socke
 with the axis convention (+Y forward of the attachment, +Z up). Bind every deforming piece to the
 same skeleton, normalise weights, four influences per vertex as the delivery target, rigid armour
 to one bone. A plate that spans a joint (a pauldron, a couter) rides a helper bone that takes part
-of the joint's turn; the padding's blended weights bend a rigid shell and read as crushed. Apply
-scale and rotation before binding; never apply an Armature modifier as cleanup.
+of the joint's turn; the padding's blended weights bend a rigid shell and read as crushed. A
+shoulder plate takes the arm's swing and none of its twist; limb twist goes down the sleeve in steps
+on twist bones. Apply scale and rotation before binding; never apply an Armature modifier as cleanup.
 
 Hands that hold things, with the tools in `assets/grasp_tools.py`:
 - Seat each hand socket where the handle rests in the open hand, at the base of the fingers

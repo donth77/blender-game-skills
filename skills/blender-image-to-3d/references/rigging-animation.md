@@ -47,33 +47,55 @@ at the elbow and knee:
 A cop on one bone either stays behind the joint or swings into the limb.
 
 Shoulder armour (a pauldron or spaulder: a cap and lames) is one rigid shell on its own helper:
-- parented to the clavicle, with the upper arm's direction and roll;
-- turned by Copy Rotation, local to local, of about 0.9 of the upper arm's rotation;
-- pivoting part of the way from the shoulder joint up to the cap's crown.
+- parented to the clavicle, aimed at the upper arm's tip;
+- turned by a Damped Track to that tip at about 0.9 influence: the arm's swing, none of its twist;
+- pivoting about a third of the way from the shoulder joint up to the cap's crown.
 
 Weighted like the padding under it (clavicle to upper arm by distance down the arm), the plates
 bent through their middles with the arm raised, and a review called them "extremely bent and
 crushed as if there isn't even anything inside of the armor". Linear blend skinning bends any
-rigid shell that spans two bones. The pivot trades two faults:
+rigid shell that spans two bones.
+
+Copying the arm's whole rotation instead spun the shell round the arm with the humerus. Retargeted
+arms twist a long way about their own length (130 degrees in an overhead strike, measured as the
+twist left after the swing), and the review found "the pauldron completely turned where the armor
+is facing away from the camera". With the pivot off the arm's axis, the twist also swung the shell
+down the arm, so "the arm appear[ed] to be almost removed from the body via the shoulder only
+connected by a thin piece of flesh". A strap over the shoulder carries the swing; the arm turns
+inside the shell.
+
+The pivot trades two faults:
 - at the joint, the cap's inner edge dives into the neck and breastplate as the arm rises;
 - at the crown, the shell slides off the shoulder (8.9 cm with an arm raised 138 degrees);
-- halfway kept both small.
+- a third of the way up kept both small.
 
-One fraction for every direction still drove the cap's front edge into the breastplate's side with
-the arm swung far back. If the poses reach that, limit the helper's swing there, and have the engine
-apply the same limit.
+One fraction for every direction still pressed the cap's inner edge into the collar (the padding and
+breastplate by the neck) with the arm raised high or swung back, 20 to 40 intersecting triangle pairs
+per pose. If the poses reach that, limit the helper's swing there, and have the engine apply the same
+limit.
 
 Give each plate its own helper only if the plates are built to slide: shells about one centre with
 room between them. Lames nested 2.5 mm apart as bands round the arm crossed each other under any
 difference in turn, even in the idle pose.
 
+The twist the shell leaves out has to reach the elbow in steps. Put it in one row of faces and 130
+degrees wrung the sleeve above the elbow like a towel: the middle of a row twisted by an angle
+narrows to the cosine of half of it. Give the limb twist bones (the arm's full swing plus 1/3 and
+2/3 of its twist: a Damped Track, then a Copy Rotation of the arm in pose space at 1/3 or 2/3
+influence) and a ring of vertices on each. Rows of about 40 degrees narrow by 7 percent.
+
 glTF carries no constraints:
 - The exporter samples each helper's turn into exported actions.
-- A pose made at runtime must drive the helper from its target's change from rest:
-  `helper.quaternion = helperRest * slerp(identity, targetRest^-1 * target.quaternion, f)`, with
-  the rest (bind) local rotations stored at load. The helper shares its target's parent and rest
-  orientation, as Blender's local Copy Rotation assumes. `identity.slerp(target.quaternion, f)`
-  is only right when the rest rotation is the identity.
+- A pose made at runtime must drive each helper from its target's change from rest,
+  `d = targetRest^-1 * target.quaternion`, with the rest (bind) local rotations stored at load:
+  - a joint helper sharing its target's parent and rest orientation, as Blender's local Copy
+    Rotation assumes: `helper.quaternion = helperRest * slerp(identity, d, f)`;
+  - a swing helper (Damped Track): the from-to rotation between the rest and current directions
+    toward the target's tip, in the parent's frame, slerped by f;
+  - a twist step: split d about the bone's own Y into `twist = normalize(0, d.y, 0, d.w)` and
+    `swing = d * twist^-1`, then `helperRest * swing * slerp(identity, twist, k)`.
+
+  `identity.slerp(target.quaternion, f)` is only right when the rest rotation is the identity.
 - Write that note into the manifest. Quadruped: spine chain from
 pelvis through neck and head, four limbs with scapula, shoulder, elbow, carpus and hip, stifle,
 hock, plus tail chain. Winged: humerus, radius, metacarpal, digit chains per wing with membrane
@@ -120,7 +142,10 @@ Rules that kept a one-piece glove, its plates and hanging gear clean:
 - **Padding under a rigid shell.** The sleeve under a helper-driven pauldron rides the same helper
   where the plates cover it, and hands over to the limb in the bare gap between two plates (the
   lowest lame and the elbow cop). The gap needs an edge loop at each end. With a single ring in it,
-  some face under one plate or the other had to shear, and showed through that plate.
+  some face under one plate or the other had to shear, and showed through that plate. Below the
+  gap, each ring rides one twist step. Blend the ring nearest a bent joint a little into the next
+  bone too (a wider blend about the elbow), or its full width meets the forearm plate's rim in the
+  crook.
 - **Collars under a neighbouring plate.** Padding tucked under a plate on another bone (a
   sleeve's collar under the gorget ring) keeps the blend it had. Moved onto the pauldron's helper,
   it rode into the ring even in the idle pose.
@@ -181,6 +206,15 @@ Measure the sheet with `scripts/pose_overlap.py`:
 - **Claims** such as "no weapon crosses the body in any pose" are read back from the report, pose
   by pose, before they are written. One summary said so while its own file listed a shield through
   the scabbard in one pose.
+- **What shows.** A pair count says that two parts cross, not whether it shows. Before fixing a
+  contact seen in a close-up, cast rays:
+  - from the limb's axis out through the cloth: cloth past a plate's outer surface is a visible
+    poke-through, with its depth;
+  - from the review camera through the plate the cloth hides: one cloth crossing before the plate
+    means the plate is under the cloth, two mean it is behind the limb.
+
+  An elbow strap half hidden by a twisted sleeve's outline looked like a poke-through at close
+  zoom. The rays put it behind the arm.
 
 Pass criteria:
 - no collapsed volume at joints;
