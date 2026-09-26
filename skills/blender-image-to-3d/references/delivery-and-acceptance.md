@@ -68,6 +68,15 @@ Bake settings that hold up: cage extrusion around 1 percent of asset height, ray
 (teeth, layered garments). Inspect normal bakes under a moving light, especially hard edges and
 UV seams (Cycles baking guide: https://docs.blender.org/manual/en/latest/render/cycles/baking.html).
 
+Folded cloth stacks its own layers closer than that cage. Bake it with a cage smaller than the gap
+between its folds, a few mm. An 8 mm cage baked the underside of the fold above into the fold below,
+as dark normal and AO patches over a shoulder. Rays that miss at the small cage are filled from their
+neighbours like the island margins. Give the small cage to the folded cloth alone: bake it as its own
+low object and write the result into its UV islands. On a whole cloak object, a 3 mm cage started
+rays inside the thick cloak's gathered top (its low grid lay up to 8 mm inside the finer high one)
+and baked its inner face, black. When a dark patch shows in the textured view and not in clay, look at
+the bake, not the mesh.
+
 ## 3. Budgets and LOD policy
 
 Pick a target device and frame budget before finalising density; a desktop 60 fps target gives

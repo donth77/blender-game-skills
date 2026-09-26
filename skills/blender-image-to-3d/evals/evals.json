@@ -79,6 +79,15 @@
         "ref/knight_front.png",
         "ref/knight_side.png"
       ]
+    },
+    {
+      "id": 10,
+      "prompt": "The top of the cape needs improvement especially at the top back area. The cape appears cut or sliced. It looks like two separate pieces of cloth: one for the hood and one for the back. The concept art shows a single continuous fluid, naturally placed and realistic piece of cloth on the cape backside. The concept art looks like a single continuous piece of cape that is simply rolled or folded on top of itself",
+      "expected_output": "diagnosis from the build and renders, reviewed with gear stowed on the back taken off: the collar hangs down the back as a hood whose hem lies on the cloak, and the cloak's top edge is cut straight across below it with its corners showing at the shoulders; the collar and cloak made to read as one garment rolled over at the neck: less collar fabric at the back so it settles as a roll at the nape, the cloak's top edge raised under the roll everywhere, the collar's hem tucked a few mm into the cloak and kept there by the passes after it; the cloak's top given the collar's own weights so the two move together in poses; variants prototyped through the real builders and compared with the concept's back view, with the collar and cloak in two colours; the folded collar baked with a cage smaller than the gap between its folds (on its own, written into its UV islands), dark patches traced to the bake by comparing textured and clay views; the front drape and any fastener on it unchanged and re-measured; the triangle budget held; before/after captures of the upper back from the viewer's cameras, with the collar-against-cloak intersections and the uncovered cloak top edge measured in the bind position and every test pose",
+      "files": [
+        "ref/knight_front.png",
+        "ref/knight_side.png"
+      ]
     }
   ]
 }

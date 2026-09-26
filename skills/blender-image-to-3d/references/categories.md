@@ -175,7 +175,21 @@ Record its source and licence in `ref/` and in the manifest.
     the faces. A cloak lowered away from the collar reads as "floating, not connected", and a
     cloak top cut straight across below the collar shows a band of armour between them: raise
     the cloak along the shoulder line to the base of the neck under the collar.
-  - A hood lying on the back falls as one broad, rounded drape. Give the solver's start shape its
+  - A cloak whose top gathers into the collar is one garment rolled over at the neck, not a hood
+    lying on the back. A collar given a hood's room and drop down the back settled as a bib with its
+    hem lying on the cloak, and a review read "two separate pieces of cloth: one for the hood and
+    one for the back". Instead:
+    - give the collar less fabric at the back (about two thirds of the sides' and front's) so it
+      settles as a roll at the nape;
+    - run the cloak's top edge up under the roll everywhere; its corners beside the collar looked
+      "cut or sliced";
+    - tuck the collar's hem a few mm into the cloak's thickness, eased over its last few rows, so the
+      folds run into it. Laid 1.5 mm off the cloak, its thin, decimated edge still showed as a line.
+      Keep the passes after the tuck (clearances, the face settle) from pushing it back out.
+  - Simulating the collar and the cloak's top as one sheet, pinned at the jaw and on the cloak, did
+    not work: the collar's extra fabric fell into the sheet below and dragged it through the
+    backplate. Keep two pieces and lay them together.
+  - A real hood lying on the back falls as one broad, rounded drape. Give the solver's start shape its
     extra room and drop evenly across the back (a plateau over about 60 degrees either side), not
     peaked at the centre, which falls as a tongue.
   - A closed collar's sides come round to the front of the neck over an open cloak and must pass
@@ -186,7 +200,8 @@ Record its source and licence in `ref/` and in the manifest.
   - Do not clean up leftover intersections by pushing single vertices off whatever they touch in
     a loop. Where the cloth is caught between two obstacles it oscillates and grows spikes.
   - Review it with the cloth in its own colour: a triangle-pair count cannot tell a hidden tuck
-    from steel showing through.
+    from steel showing through. Look with stowed gear taken off as well: gear on the back, the
+    viewer's default state, hid the cloak's top that the reviewer saw.
 - **Cloaks and pauldrons.** Lift a cloak over the armour by ray casts and check it with an overlap
   test: armour poking through a cape is the first thing seen from behind. When the reference hangs
   it over one pauldron and under the other, lift it over the torso armour and the near pauldron

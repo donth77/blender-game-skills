@@ -308,8 +308,9 @@ $BLENDER_BIN --background --python scripts/bake_maps.py -- --blend CH_Knight/CH_
   --match-by-name --rebuild-material --save CH_Knight/CH_Knight_baked.blend
 ```
 
-Bake by named group where projections cross onto neighbours (teeth, layered garments); keep
-transparent shells (corneas, visors, glass) out of the sources with `--exclude-sources`. LOD0 is
+Bake by named group where projections cross onto neighbours (teeth, layered garments), and folded
+cloth on its own with a cage smaller than the gap between its folds (`references/delivery-and-acceptance.md`);
+keep transparent shells (corneas, visors, glass) out of the sources with `--exclude-sources`. LOD0 is
 baked; LOD1 and LOD2 reuse its material and maps (they came from `lod_copy`, same UV layout).
 Pass `--all-lods` only when a LOD has its own UVs. Document colour space per map, normal-map
 green convention and any channel packing in the manifest.

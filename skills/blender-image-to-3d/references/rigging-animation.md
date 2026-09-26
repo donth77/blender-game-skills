@@ -139,6 +139,10 @@ Rules that kept a one-piece glove, its plates and hanging gear clean:
   two move together when the thigh lifts.
 - **Cloaks.** Keep them on their own chains. Blending a cloak into the shoulder bones where it
   rests on a pauldron dragged its edge into the backplate whenever an arm moved forward.
+- **Cloth under a collar's roll.** Where a cloak runs up under a collar, that part takes the
+  collar's own weights, blended in below the collar's hem, so a hem tucked into the cloak stays in
+  it. With the cloak's top on the chest alone, it slid through the roll whenever the neck or a
+  shoulder moved: 2713 intersecting pairs over the test poses, against 298 with the collar's weights.
 - **Padding under a rigid shell.** The sleeve under a helper-driven pauldron rides the same helper
   where the plates cover it, and hands over to the limb in the bare gap between two plates (the
   lowest lame and the elbow cop). The gap needs an edge loop at each end. With a single ring in it,
