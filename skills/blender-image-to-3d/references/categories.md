@@ -180,7 +180,9 @@ Record its source and licence in `ref/` and in the manifest.
     hem lying on the cloak, and a review read "two separate pieces of cloth: one for the hood and
     one for the back". Instead:
     - give the collar less fabric at the back (about two thirds of the sides' and front's) so it
-      settles as a roll at the nape;
+      settles as a roll at the nape. The reviewer called even that roll "a wrinkled mess" and chose
+      smooth fabric over the concept's bunching: about a third, with extra smoothing over the back of
+      the settled cloth only, gives a smooth collar;
     - run the cloak's top edge up under the roll everywhere; its corners beside the collar looked
       "cut or sliced";
     - tuck the collar's hem a few mm into the cloak's thickness, eased over its last few rows, so the

@@ -74,8 +74,16 @@ as dark normal and AO patches over a shoulder. Rays that miss at the small cage 
 neighbours like the island margins. Give the small cage to the folded cloth alone: bake it as its own
 low object and write the result into its UV islands. On a whole cloak object, a 3 mm cage started
 rays inside the thick cloak's gathered top (its low grid lay up to 8 mm inside the finer high one)
-and baked its inner face, black. When a dark patch shows in the textured view and not in clay, look at
-the bake, not the mesh.
+and baked its inner face, black. Where a pin or fastener presses the drape into layers 1-3 mm apart, no
+cage works: bake that cloth's AO from its own surface (no high source) and leave its normal map flat, so
+it shades from its geometry. Two traps in that self-bake:
+- Hide the cloth's high copy. It lies within a millimetre and every AO ray met it: black.
+- A single sheet shown from both sides holds one AO value per texel. Bake each side (faces made
+  consistent across the sheet, then all reversed) and keep the lighter. The side that shows is the open
+  one, and a crease stays dark on both. Turning each face outward on its own flipped neighbours in the
+  folds and baked black mottling.
+
+When a dark patch shows in the textured view and not in clay, look at the bake, not the mesh.
 
 ## 3. Budgets and LOD policy
 
