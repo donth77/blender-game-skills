@@ -49,7 +49,7 @@ as inferred. Say so when a single image forces inference; do not present a guess
 | `scripts/pose_overlap.py` | interpenetration on the extreme-pose sheet: body pairs against the bind position, weapons and carried gear counted absolutely |
 | `scripts/bake_maps.py` | normal and AO from HIGH to LOW, base colour, roughness, metallic; rebuilds delivery materials |
 | `scripts/export_delivery.py` | GLB/FBX export with asset-manifest.json and animation-contract.json |
-| `scripts/roundtrip.py` | imports the export into a blank Blender, reports what arrived, renders a check |
+| `scripts/roundtrip.py` | imports the export into a blank Blender, reports what arrived in the bind pose, fails glTF clips that do not start at time 0, renders a check |
 
 `assets/grasp_tools.py` holds the hand tools for Phase 6: the grip seat (where a handle rests in
 the open hand), the grasp (every phalanx wrapped onto the weapon's mesh, with a per-segment gap
@@ -85,15 +85,19 @@ before long renders and bakes.
 4. From Phase 3 on, also review close-ups. The silhouette and proportion numbers cannot see a
    primitive face, folded ears, box hands, a slab boot, a buckle hovering off its belt or a sword
    through the thigh. A character that passed every numeric gate failed its first close look on
-   all of these. Render the same fixed orthographic close-up cameras each time, in material mode:
+   all of these. Render the same fixed orthographic close-up cameras each time, in material mode,
+   for the parts the asset has:
    - face (front, three-quarter, profile) and an ear;
-   - hands open and gripping;
+   - hands open, resting and gripping, as the asset shows them;
    - feet, knees and elbows;
    - belt and hanging gear;
-   - the neckline and cape from behind.
+   - the neckline and cape from behind;
+   - every seam between garment pieces, from above and below as well as level.
 
    Judge them with the realism checklist in `references/categories.md` section 2, and keep them as
-   a before/after sheet when a revision changes them.
+   a before/after sheet when a revision changes them. Look from everywhere the reviewer's viewer
+   can go: an orbit camera reaches above and below, where a slot at a waist seam showed that no
+   level capture had.
 5. Show the user the compare sheet, the remaining deviations, and what was inferred. Continue on
    approval. If the user said not to ask, continue when the tolerance is met and keep the sheets
    in `review/` for them. If the user reviews in a live viewport, reload the master there after
@@ -120,6 +124,7 @@ PARTS      every part in construction and overlap order; for each: separate obje
 SILHOUETTE the 3 to 5 features that make it read at gameplay size
 MATERIALS  per part: role (skin, scales, worn leather, painted metal, carved stone, glass), colour, roughness range, wear pattern
 ARTICULATION rig family, joints or pivots, sockets needed, animation needs (none / idle only / full library)
+NEEDS      the rows of rigging-animation.md section 0 this asset has (hands that grip, hands shown at rest, armour over joints, face keys, chains baked by springs, a skirt over legs that lift, garment pieces sewn together, retargeted clips, a non-biped body, runtime retarget data), plus a likeness from photographs and hair cards when present; "core only" for most props
 INFERRED   every side, dimension or part the images do not show and the prior used to fill it
 TARGET     engine, export format, budget tier from the table, game camera (elevation, distance, lens), subject height in pixels at typical gameplay distance, and the closest view it must survive (gameplay only, or close inspection in a viewer, cutscene or menu)
 ```
@@ -238,7 +243,11 @@ Characters: `references/categories.md` section 2 covers:
 - boots on a real last, and joint armour;
 - cloth at the neck designed over the body, and the hem;
 - belts and hanging gear;
-- the neck join, armour fitted to the garment underneath, and strand hair colliders and shading.
+- the neck join, armour fitted to the garment underneath, and strand hair colliders and shading;
+- dresses, skirts and layered outfits, and garment pieces sewn together;
+- a likeness of a real person from photographs, eyes for real-time renderers, and the traps of
+  MakeHuman bodies;
+- hair cards.
 
 Review close-ups of the neck, hands and every armour overlap from several angles with everything
 the viewport shows. Check clearances with mesh overlap tests.
@@ -270,7 +279,9 @@ Quads in the source, triangulated delivery; lock the triangulation before baking
 not change later. Run the cleanup: doubles, stray islands, zero-area faces, flipped normals,
 overlapping interior shells. Open boundaries are fine on cloth sheets, hair cards and decals;
 collision proxies must be closed. Build LOD1 and LOD2 now with `lod_copy` and fix their outlines
-by hand, keeping head, shoulder, weapon, wheel and doorway silhouettes.
+by hand, keeping head, shoulder, weapon, wheel and doorway silhouettes. Review and validate every
+level, build each level's garments against its own body, and measure layered meshes on the
+triangulation the renderer uses (`references/delivery-and-acceptance.md` section 3).
 
 Gate: `validate.py` with the budget tier's tri count and `--attachments` (exit 0, warnings
 explained, no floating parts), wire mode render of LOW, and a clay compare against Phase 3
@@ -326,20 +337,30 @@ Skip only for static props and kit pieces without moving parts. Otherwise `build
 deformation skeleton in RIG_DEF from the rig family in `references/rigging-animation.md`,
 controls in RIG_CTRL, real pivots for every hinge, wheel, door and turret, sockets in SOCKETS
 with the axis convention (+Y forward of the attachment, +Z up). Bind every deforming piece to the
-same skeleton, normalise weights, four influences per vertex as the delivery target, rigid armour
-to one bone. A plate that spans a joint (a pauldron, a couter) rides a helper bone that takes part
-of the joint's turn; the padding's blended weights bend a rigid shell and read as crushed. A
-shoulder plate takes the arm's swing and none of its twist; limb twist goes down the sleeve in steps
-on twist bones. Apply scale and rotation before binding; never apply an Armature modifier as cleanup.
+same skeleton, normalise weights, four influences per vertex as the delivery target. Apply scale
+and rotation before binding; never apply an Armature modifier as cleanup.
 
-Hands that hold things, with the tools in `assets/grasp_tools.py`:
-- Seat each hand socket where the handle rests in the open hand, at the base of the fingers
-  (`grip_seat`), not at a point guessed in front of a fist.
-- Wrap every finger onto the weapon's own mesh with each phalanx on it (`grasp`), and check the
-  palm and every segment sit within about 6 mm of the handle (`segment_gaps`). Fingertips alone
-  on the handle read as fingers smashed against it.
-- Aim each held weapon by turning the hand and forearm against the posed body (`turn_hand`,
-  `search`, `posed_body_tree`), so a blade never crosses the legs, scabbard or cloak.
+Then add only what the brief's NEEDS line lists (`references/rigging-animation.md` section 0). A
+character without armour, weapons or a skirt carries none of their rules or gates; a dog carries
+the quadruped rows instead. For example:
+- **Armour over joints.** Rigid armour goes to one bone. A plate that spans a joint (a pauldron, a
+  couter) rides a helper bone that takes part of the joint's turn; the padding's blended weights
+  bend a rigid shell and read as crushed. A shoulder plate takes the arm's swing and none of its
+  twist; limb twist goes down the sleeve in steps on twist bones.
+- **Hands that hold things**, with the tools in `assets/grasp_tools.py`:
+  - Seat each hand socket where the handle rests in the open hand, at the base of the fingers
+    (`grip_seat`), not at a point guessed in front of a fist.
+  - Wrap every finger onto the weapon's own mesh with each phalanx on it (`grasp`), and check the
+    palm and every segment sit within about 6 mm of the handle (`segment_gaps`). Fingertips alone
+    on the handle read as fingers smashed against it.
+  - Aim each held weapon by turning the hand and forearm against the posed body (`turn_hand`,
+    `search`, `posed_body_tree`), so a blade never crosses the legs, scabbard or cloak.
+- **Hands shown at rest.** Set the fingers in absolute angles from the rest, never as curl added to
+  the bind pose. The thumb bends at both joints with its pad on the curled index finger, and a
+  per-frame check measures every finger joint by anatomy.
+
+Every pose helper sets its bones from the rest on every call and never adds to the pose they
+already have: a curl re-added inside a search loop shipped "broken and dislocated" fingers.
 
 Bend elbows and knees about the bone's own hinge (a local rotation): a world-axis turn after the
 parent has turned twists the joint and drives the elbow plate into the sleeve.
@@ -350,14 +371,15 @@ nothing else moving read as cartoonish, and the sheet is what the user sees of t
 
 Gate:
 - The extreme-pose sheet (`review_render.py --action <pose_action> --frame N` for every pose the
-  reference file lists), all separate parts visible together. It includes the concept's own stance
-  (an idle holding what the concept holds) and every weapon state the game shows (in hand,
-  sheathed, stowed). Check the sheathed state as the engine shows it: the weapon asset attached to
-  its hip socket at the bind pose, intersecting nothing.
+  reference file lists), all separate parts visible together. It includes the concept's own stance,
+  holding what the concept holds. For a character that carries weapons it includes every weapon
+  state the game shows (in hand, sheathed, stowed). Check the sheathed state as the engine shows
+  it: the weapon asset attached to its hip socket at the bind pose, intersecting nothing.
 - `scripts/pose_overlap.py` on the sheet's file: body pairs against the bind position, weapon and
   carried-gear pairs counted absolutely, no weapon pair except a glove on its own grip. Counts only
   see crossings: read each part on a helper bone for where it sits and which way it faces as well.
-- `validate.py` shows no unweighted or over-influenced vertices.
+- The gates of each NEEDS row (`references/rigging-animation.md` section 0), and only those.
+- `validate.py` shows no unweighted or over-influenced vertices, on every LOD.
 - Each socket is tested with its real attachment in at least one pose.
 
 ## Phase 7: secondary motion
@@ -365,20 +387,27 @@ Gate:
 Only for garments, chains, tails, wings, cables, tracks or antennae that the brief marked as
 simulated or secondary. Follow section 6 of `references/rigging-animation.md`: separate render,
 simulation and collision representations, pinned attachment areas with real clearance, one owner
-per vertex's motion, a bone-chain fallback. Stowed gear holds the cloth under it: a shield, pack
-or quiver on the back pins the cloak's top segments (`grasp_tools.settle_chain`), and a cape posed
-back off the legs must not swing through it. Gate: posed renders in the extreme poses show no body
-or weapon penetration (`pose_overlap.py`), and the fallback chain alone still reads as the same
-garment.
+per vertex's motion, a bone-chain fallback. Gear stowed over cloth holds the cloth under it: a
+shield, pack or quiver on the back pins the cloak's top segments (`grasp_tools.settle_chain`), and
+a cape posed back off the legs must not swing through it. A spring bake runs each step at its real
+length with its parameters converted to it (6.1). A skirt over legs that lift is gated for
+clipping and for air (6.2), and garment pieces sewn together for each seam's opening (6.3). Gate:
+posed renders in the extreme poses show no body or weapon penetration (`pose_overlap.py`), the
+gates of the NEEDS rows pass on the exported file, and the fallback chain alone still reads as
+the same garment.
 
 ## Phase 8: animation
 
-Only when requested. `build/08_anim.py` or the live session. Named Actions with deliberate
-ranges, loop flags and pose markers for events; in-place locomotion tagged with its speed;
-upper-body layers with a reference pose and mask; bake IK to the deformation skeleton for
-delivery and keep the unbaked master. Gate: each clip rendered as a short turntable-free sequence
-at the game camera, loop seams checked for root drift and pops, event timings read back from
-`animation-contract.json`.
+Only when requested. `build/08_anim.py` or the live session. Source the motion from the user's
+libraries (Mixamo, motion capture, purchased packs) and retarget it
+(`references/rigging-animation.md` section 5.1); hand-keyed procedural clips read as janky. Named
+Actions with deliberate ranges, loop flags and pose markers for events; in-place locomotion
+tagged with its speed; upper-body layers with a reference pose and mask; bake IK to the
+deformation skeleton for delivery and keep the unbaked master. Gate: each clip rendered as a short
+turntable-free sequence at the game camera, loop seams checked for root drift and pops, event
+timings read back from `animation-contract.json`. The exported file then passes its checks in
+every frame (section 5.2): triangle tests for whatever can collide, held poses beside a posed
+reference, clip ends that chain, and every clip starting at time 0.
 
 ## Phase 9: export and round trip
 
@@ -395,9 +424,10 @@ $BLENDER_BIN --background --python scripts/roundtrip.py -- --file CH_Knight/expo
 ```
 
 Gate: roundtrip exit 0 (tri counts per LOD, bone names, clip lengths, images all match the
-manifest; height within 1 percent; nothing below the ground plane), and the roundtrip clay render
-matches the Phase 3 clay render. Then import into a clean project of the target engine if one is
-available and play every clip with the real weapon or garment combination.
+manifest; height within 1 percent, measured in the bind pose; nothing below the ground plane;
+every glTF clip's first key at time 0), and the roundtrip clay render matches the Phase 3 clay
+render. Then import into a clean project of the target engine if one is available and play every
+clip with the real weapon or garment combination.
 
 For a web target, hand over a small three.js viewer. It loads the exported GLBs, attaches the
 weapons through the sockets with identity transforms, and scrubs the pose-test action exported on
@@ -406,7 +436,8 @@ node names (`SOCKET_hand.R` arrives as `SOCKET_handR`; the original name is in `
 Put the build on the page (the manifest's `generated` time) and give each review a new link whose
 query reaches every fetch, the manifest included: fetched without it, the label can show an old
 time over a new model. A reviewer judged a build that had been replaced, and nothing on the page
-said which one it was.
+said which one it was. Reviewers also keep one tab open and reuse links, so the page should poll
+for a newer export and reload itself (`references/delivery-and-acceptance.md` section 5).
 
 Before exporting a new build, copy the current exports beside a copy of the viewer pointed at them,
 so the reviewer can open the old and new builds side by side. Read your own captures of the new build
@@ -438,6 +469,19 @@ Do not describe the asset as matching the reference where a measurement says oth
 - When tuning a method has failed the same complaint twice, change the method. A solver-draped cowl
   stayed "a crumpled mess" through changes to its fabric, stiffness and smoothing; designing its
   shape over the body fixed it.
+- A reported look is a claim to measure in the reviewer's words. First decide whether it is
+  posture (where the parts stand) or surface (how the skin deforms), and look at the whole figure
+  in profile beside the reviewer's reference before any close-up. A second report of the same
+  thing means the reading was wrong, not that the fix was too weak: label the candidate parts on a
+  capture of the reviewer's own view and ask which one.
+- A new check that disagrees with the old ones may be misreading. Confirm it with an independent
+  measure, and make every new gate fail on the known-bad build before trusting it to pass.
+- Compare a change on and off only on a build with no other open fault, and key rules to the
+  asset's own state, not to what a source happens to do.
+- A defect the reviewer finds on one asset is a question about every asset built the same way:
+  run its check on the siblings before the reviewer looks at them.
+- Generated parts (hair cards, scatter) keep the approved draw's inputs; compare any rebuild with
+  the approved output before rendering it.
 - Attached things touch what holds them. Held things are gripped by the mesh of the hand, not
   placed near it, and aimed so they clear the body in every pose.
 - When the user values realism over a budget, move the tier and record why. A triangle cap that

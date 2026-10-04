@@ -128,6 +128,18 @@ sacrificing a limb's outline. Decide how skeletal LOD reduces finger, cloth, win
 work. Validate transitions during motion; a static distance sweep misses snapping garments and
 changing weapon grips. Colliders and shadow proxies are independent from sculpt detail.
 
+Review every level, not only LOD0:
+- Render each level posed at least once, and measure garment-over-body per level. A coarser dress
+  cut corners its coarser body kept, and skin showed through at LOD1 and LOD2 while every sheet
+  had shown LOD0.
+- Build each level's garments, weights and skin trims against that level's own body.
+- Run `validate.py` on every level. A remade LOD2 body lost every weight, and only the validator
+  caught it.
+- Measure layered meshes on the triangulation the renderer and the export use. A coverage test
+  built on quads read clear where the renderer split the same quads along the other diagonal and
+  showed skin. Lock the triangulation (split quads along `mesh.loop_triangles`' diagonals) before
+  measuring, baking or exporting layered meshes.
+
 Profile the worst realistic scene (the crowd cap, four players, worst-case materials, cloth and
 effects), not one idle asset in a hallway. Reduce the largest measured cost first; keep readable
 telegraphs and responsive controls ahead of decorative detail.
@@ -148,7 +160,9 @@ Acceptance for every asset (all must hold before Phase 10 signs off):
   survive shadow and fog.
 - Anatomy, costume or panel assembly and articulation make physical sense; contact points sit on
   the ground; wheels touch the floor.
-- Hands grip what they hold: fingers closed on the handle's mesh, the thumb over them.
+- Hands that hold something grip it: fingers closed on the handle's mesh, the thumb over them.
+- Every row of the brief's NEEDS line has passed its gates (rigging-animation.md section 0), and
+  only those rows were required.
 - Every attachment touches its holder (`validate.py`: no floating parts, `--attachments`
   clean). This covers buckles on straps, pouches on belts, handles on boards and scabbards on
   hangers.
@@ -158,14 +172,16 @@ Acceptance for every asset (all must hold before Phase 10 signs off):
   fights the scene.
 - Joints, hinges, wings, doors and wheels move through their full range cleanly; no holes between
   modular pieces; no interpenetration on the extreme-pose sheet.
-- `pose_overlap.py` reports no weapon pair in any pose except a glove on its own grip.
+- For an armed character, `pose_overlap.py` reports no weapon pair in any pose except a glove on
+  its own grip.
 - The sheet includes the concept's own stance with what the character holds.
 - Secondary motion has no visible body or weapon penetration in ordinary play, a controlled
   fallback, and survives teleports and low frame rates.
 - Every clip has a tested loop and event contract; impact, projectile origin and telegraph match
-  gameplay.
-- LODs preserve role and timing; validate.py reports no FAIL; the round trip resolves every
-  dependency and reproduces the review renders.
+  gameplay. The exported clips pass their per-frame checks (rigging-animation.md section 5.2) and
+  start at time 0.
+- LODs preserve role and timing; every level was reviewed posed; validate.py reports no FAIL on
+  any level; the round trip resolves every dependency and reproduces the review renders.
 - Unseen sides and every inferred dimension are listed in the manifest and shown to the user.
 
 ## 5. Export, round trip and the manifest
@@ -183,7 +199,9 @@ https://docs.blender.org/manual/en/latest/addons/import_export/scene_gltf2.html)
 Round trip: export, import into a blank Blender (roundtrip.py), then import into a clean engine
 project, play every clip with the same weapon or garment combination, view at the game camera.
 Confirm nothing depends on missing texture paths or hidden parent transforms. Record the engine's
-vertex and material counts.
+vertex and material counts. roundtrip.py measures the bind pose (the importer leaves the first
+clip applied) and fails a glTF clip whose first key is not at time 0. Keep test clips out of the
+asset's own files: viewers auto-play the first clip.
 
 For a web target, the handover includes a small three.js viewer:
 - it loads the exported GLBs;
@@ -194,7 +212,7 @@ People review in it, and they catch what the sheets missed. GLTFLoader strips ".
 (`SOCKET_hand.R` arrives as `SOCKET_handR`, `DEF-upper_arm.L` as `DEF-upper_armL`); look nodes
 up by `userData.name` or document the mapping. Never rename the export for a loader.
 
-Two viewer traps:
+Viewer traps:
 - A bind-pose button that resets the skeleton directly (`skeleton.pose()`) must stop the pose
   action, not just disable it. An AnimationMixer writes a bone only when its value differs from
   the mixer's own last update. A disabled-then-enabled action therefore leaves the bind pose on
@@ -202,6 +220,21 @@ Two viewer traps:
 - Scripted before/after captures set the camera and then wait some frames: OrbitControls with
   damping is still moving when a screenshot is taken at once, so the "same camera" frames
   differently. Capture after and before with the same code.
+- Reviewers keep one tab open and reuse links. The page should show the newest export by itself:
+  fetch the manifest uncached, version every other fetch by its build time, show the build time,
+  and poll for a newer export and reload. When a request comes back word for word, first check what
+  the reviewer's own server is serving.
+- Capture from everywhere the camera lets the reviewer go. An orbit camera reaches above and
+  below: a slot at a waist seam that every level capture missed was the first thing a reviewer
+  saw looking down.
+- A real-time renderer is not the path tracer:
+  - ambient light reaches into an open mouth, so a mouth lining in one full red showed as a red
+    patch at the corner of a laugh;
+  - alpha-tested lashes turn into black clumps;
+  - card hair greys under its specular;
+  - an eye whose cornea shell is hidden or alpha-blended loses its catchlights.
+
+  Capture the face, the open mouth and the eyes in the viewer, not only in Cycles.
 
 Manifest (asset-manifest.json, written by export_delivery.py): units and axes for authoring and
 export, target height, bounds, files per LOD with tri counts, materials, textures with colour
@@ -217,6 +250,10 @@ Also record in the manifest:
   poses, eye bones.
 - **Deviations that came from a user's direction:** for example a realistic boot shorter than the
   painted one, stated with the measurement.
+- **Which files carry the sockets** (`sockets_in_files`): with split LODs, the LOD0 file and the
+  combined file only.
+- **Material switches a renderer needs:** for example when to hide a cornea shell, and what the
+  eyeball's own gloss is for.
 
 Animation contract (animation-contract.json): per clip name, fps, frame range, length in seconds,
 loop flag, events in seconds from pose markers, and any speed, blend direction, root motion or

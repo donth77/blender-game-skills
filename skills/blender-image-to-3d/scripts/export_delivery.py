@@ -10,6 +10,9 @@ blender --background --python scripts/export_delivery.py -- \
 --no-apply keeps modifiers unapplied at export (required when meshes carry shape keys: apply
 the modifiers on the delivery copy first, then export with --no-apply).
 glTF is exported Y up; the manifest records the authoring axes so the importer can check.
+--split-lods puts the sockets and colliders in the LOD0 file and the combined file only; the LOD1
+and LOD2 files carry meshes and the skeleton.
+glTF clips are slid to start at time 0 (roundtrip.py checks the key times).
 """
 import bpy, sys, os, re, json, math, argparse, datetime
 from mathutils import Vector
@@ -84,7 +87,10 @@ def export(path, objs, a):
                   export_nla_strips=True, export_def_bones=True, export_skins=True, export_morph=True,
                   export_texcoords=True, export_normals=True, export_materials="EXPORT",
                   export_image_format="AUTO", export_extras=True, export_cameras=False, export_lights=False,
-                  export_rest_position_armature=True, export_optimize_animation_size=False)
+                  export_rest_position_armature=True, export_optimize_animation_size=False,
+                  # an action keyed from frame 1 is otherwise written with its first key at 1/fps: a player that
+                  # starts the clip at 0 holds its first pose for a frame, and a loop stalls once every cycle
+                  export_anim_slide_to_zero=True)
         bpy.ops.export_scene.gltf(**op_kwargs(bpy.ops.export_scene.gltf, kw))
     else:
         kw = dict(filepath=path, use_selection=True, apply_unit_scale=True, apply_scale_options="FBX_SCALE_ALL",
@@ -217,6 +223,7 @@ def main(a):
                     for o in objs if o.type == "EMPTY" and o.name.startswith("SOCKET_")],
         "colliders": [{"name": m.name, "shape": m.get("shape", "mesh"), "tris": tri_count(m), "bounds_m": bounds([m])}
                       for m in meshes if m.name.startswith("COL_")],
+        "sockets_in_files": (["all", "LOD0"] if a.split_lods and len(lods) > 1 else ["all"]),
         "animation_contract": "animation-contract.json",
         "inferred_from_no_reference": [s.strip() for s in a.inferred.split(",") if s.strip()],
         "dependencies": [i["filepath"] for i in images if i["filepath"] and not i["packed"]],

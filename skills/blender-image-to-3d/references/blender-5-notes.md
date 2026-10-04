@@ -21,7 +21,25 @@ user's viewport disagree.
   `bpy.app.version < (5, 0, 0)`.
 - Vertex group names live on the mesh data. A copied mesh already carries the names, so creating
   the same group again yields `Group.001`; check `ob.vertex_groups.get(name)` first, and merge any
-  `.001` groups before export.
+  `.001` groups before export. The same holds after giving an object new mesh data (`ob.data =
+  new.data` for a remade LOD, `new_from_object(preserve_all_data_layers=True)`). Removing its groups
+  and adding them again "to restore the names" wiped a whole LOD body's weights, and a coverage cut
+  that reads bone weights then cut its legs off. Carry weights between levels by nearest surface
+  point, not by index. Remove the old mesh before naming its replacement, or the new one takes a
+  `.001` suffix.
+- A mesh with shape keys renders and exports its basis key, not `me.vertices[i].co`. An edit
+  written to the keys alone leaves `co` stale, and then:
+  - anything that reads `co` reads the old shape (collider fits, socket places);
+  - a bmesh round trip (`bm.from_mesh` then `bm.to_mesh`, as when deleting faces) writes `co` back
+    into the basis and silently undoes the edit.
+
+  A waist slimmed on the keys only was delivered unslimmed for days this way, 18 mm wide in
+  places, under a dress cut for the slim body. After a key-only edit, copy the basis into `co`
+  before anything else reads the mesh, and read rest positions from `key_blocks[0]`. After a body
+  edit, compare `co` with the basis (max difference) and a delivered body with its source.
+- `Bone.x_axis` and `Bone.z_axis` are in the parent bone's space; armature-space axes are the
+  columns of `bone.matrix_local`. A one-axis Copy Rotation follows the Euler angle of that axis,
+  not a swing-twist split (rigging-animation.md section 1).
 - EEVEE's engine identifier differs between versions (`BLENDER_EEVEE_NEXT` in the 4.2-era
   releases, `BLENDER_EEVEE` in 5.x, where the other is rejected); try both inside
   `try/except TypeError`.

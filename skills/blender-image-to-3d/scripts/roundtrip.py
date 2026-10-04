@@ -9,6 +9,8 @@ blender --background --python scripts/roundtrip.py -- \
 
 Compare the report against asset-manifest.json: same tri counts per LOD, same bone names,
 same clip lengths, no missing images, height within 1 percent of the target.
+Measures and renders the bind pose (the importer leaves the first clip applied), and for glTF
+fails any clip whose first key is not at time 0.
 """
 import bpy, sys, os, math, json, argparse
 from mathutils import Vector
@@ -26,6 +28,24 @@ def parse(argv):
 def view_direction(az_deg, el_deg):
     az, el = math.radians(az_deg), math.radians(el_deg)
     return Vector((math.sin(az) * math.cos(el), -math.cos(az) * math.cos(el), math.sin(el)))
+
+
+def gltf_clip_starts(path):
+    """Earliest key time of each animation, read from the file itself (sampler input accessors carry min)."""
+    with open(path, "rb") as f:
+        data = f.read()
+    if data[:4] == b"glTF":
+        n = int.from_bytes(data[12:16], "little")
+        doc = json.loads(data[20:20 + n])
+    else:
+        doc = json.loads(data)
+    acc = doc.get("accessors", [])
+    starts = {}
+    for i, an in enumerate(doc.get("animations", [])):
+        mins = [acc[s["input"]].get("min", [None])[0] for s in an.get("samplers", [])]
+        mins = [m for m in mins if m is not None]
+        starts[an.get("name") or "animation_%d" % i] = round(min(mins), 5) if mins else None
+    return starts
 
 
 def main(a):
@@ -49,9 +69,19 @@ def main(a):
             for pb in o.pose.bones:
                 if pb.custom_shape:
                     shapes.add(pb.custom_shape.name)
+            # Measure and render the bind pose. The importer leaves the first clip applied at the scene's current
+            # frame: a figure with its arms raised, or a clip's second frame, is not the height the manifest states.
+            o.data.pose_position = "REST"
+    bpy.context.view_layer.update()
 
     dg = bpy.context.evaluated_depsgraph_get()
     report = {"file": path, "errors": [], "meshes": [], "armatures": [], "clips": [], "materials": [], "images": []}
+    if ext in (".glb", ".gltf"):
+        report["clip_starts_s"] = gltf_clip_starts(path)
+        for name, t0 in report["clip_starts_s"].items():
+            if t0 is not None and t0 > 1e-4:
+                report["errors"].append("clip %s starts at %.4f s, not 0: it holds its first pose for a frame and "
+                                        "stalls once per loop (export with export_anim_slide_to_zero)" % (name, t0))
     pts = []
     for o in scene.objects:
         if o.name in shapes:

@@ -97,6 +97,39 @@
         "ref/knight_front.png",
         "ref/knight_side.png"
       ]
+    },
+    {
+      "id": 12,
+      "prompt": "Here are a front and back concept of a dancer in a short pleated skirt, a fitted bodice and curly hair (ref/dancer_front.png, ref/dancer_back.png). Build her rigged for a dance video: the skirt and the curls should move, and she'll be posed in kicks, leaps and a deep squat. No weapons, no armour.",
+      "expected_output": "a brief whose NEEDS line lists resting hands, chains baked by springs, a skirt over legs that lift and garment pieces sewn together (bodice and skirt), and leaves out hands that grip, armour and weapons; no grip, pauldron or weapon gates anywhere in the build; the skirt sewn into the bodice's edge with the sewn band on the bodice's weights; root bones per skirt column; limb colliders fitted per pose to the side of a raised thigh the cloth rests on; per-frame gates on the exported file for cloth through the legs, the air over a raised thigh, each seam's opening and the finger joints by anatomy; captures from above and below as well as level; hands set from the rest with the thumb's pad on the curled index finger",
+      "files": [
+        "ref/dancer_front.png",
+        "ref/dancer_back.png"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Do you think the skirt is floating too far above the leg in the kick pose? Some air between the leg and the skirt is much better than anything clipping through, but if the skirt appears magically floating that also looks wrong.",
+      "expected_output": "a measured answer first: the median gap between the skirt and the raised thigh at stations along it, per pose, on the exported file; the causes named (a thigh collider fitted all round is sized by the buttock and stands proud of the top of the thigh; a ring of chains cannot wrap the limb; a big corrective push spread across the whole region); colliders fitted per pose to the flesh facing up and tapered, a soft allowance for the cloth between the chains, anchored smoothing for the corrective pushes; a drape gate per frame added to the export beside the clipping gate, with before and after numbers and captures from the same cameras, and the clipping count not worse",
+      "files": []
+    },
+    {
+      "id": 14,
+      "prompt": "There are gaps in the skirt even in the ready pose, should we fix that? Is it not fully attached to the body? In the kick pose I can see a hole between the body and the skirt on the right side in front. You have to look down from above to see it.",
+      "expected_output": "captures from above and below as well as level that show the slot, and a measure of the skirt's top against the bodice in every frame (its opening at rest and in the kick); the causes in the build (a clearance rule that moved the seam row out past the bodice's edge), the weights (the sewn band on the trunk alone while the bodice edge follows the thigh) and the corrective fit (no tie at the seam); the seam row sewn inside the bodice's rolled edge, the band on the bodice's weights, each seam point tied to the bodice's nearest surface point in the fits; every layer near the seam re-checked close up, under-layers ended below the tight edge, the skin trim re-counted; a seam gate per frame that fails on the old export and passes on the new",
+      "files": []
+    },
+    {
+      "id": 15,
+      "prompt": "You broke and dislocated all of her fingers in the pose presets. Fix them. Also do you think her thumbs are in an awkward resting position?",
+      "expected_output": "the cause found by measuring joint angles per pose rather than re-tuning a curl amount (a hand helper that added curl to the current pose was called many times inside a search loop); every pose helper changed to reset its bones and set absolute values from the rest; a per-frame finger gate on the exported file by anatomy (bend about the hinge square to the finger and its nail, sideways bend and twist against rest, neighbours' skin overlap, fingertips under the palm), shown failing on the old export first; the thumbs bent at both joints with the pad resting on the curled index finger, compared in close-ups with the reference's hands",
+      "files": []
+    },
+    {
+      "id": 16,
+      "prompt": "I put a Labrador animation pack in asset-lib (FBX clips with its own rig). Rig the dog from the concept and give it the pack's clips: idle, walk, run, sit, lie down, eat. In the seated position the front shoulders shouldn't pop out.",
+      "expected_output": "a brief whose NEEDS line lists retargeted clips and a non-biped body; spine, girdle and neck joints tabulated against mesh landmarks beside the pack's rig scaled; weights compared with the pack's rig by band (forechest by height, top line), skin on rigid structure given to it, the breast's skin mostly on the shoulder blades; the source rig's sliding shoulder blades limited by a slide test rather than copied; feet pinned only while planted; held poses (sit, lie, eat) judged in profile with bones beside a photo of the animal; per-frame triangle tests on the exported file for mouth parts, tail, legs and floor; clips that share a pose agreeing at their ends; every clip starting at time 0 in the GLB",
+      "files": []
     }
   ]
 }

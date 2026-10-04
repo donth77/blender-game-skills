@@ -269,19 +269,138 @@ Record its source and licence in `ref/` and in the manifest.
   Check contact with `validate.py --attachments`. For hanging gear, make the declared holder the
   exact part that carries it. A pouch that touches the skirt behind it is still floating off its
   belt.
+- **Dresses, skirts and layered outfits.** Build each layer against the skin it will cover in the
+  delivered levels, not only the high-detail body. Tight garments built 1.2 mm off the high skin
+  left the game levels' skin 4.5 to 8.7 mm outside them near their edges, and the trimmed skin's
+  notched edge showed over the layer below as a saw edge. Where a garment is made of separate
+  pieces (a bodice and its skirt), sew them: the seam row sits inside the outer piece's cloth under
+  its rolled edge, and under-layers end below a tight outer edge (rigging-animation.md section
+  6.3). Give a skirt that must clear raised legs real circumference and root bones per column
+  (section 6.2 there). Place a pattern (knotwork, a border, a crest) by coordinates computed from
+  the garment's own 3D shape: the arc along the hem with the pleats averaged out, and the distance
+  up the cloth, interpolated per texel. Drawn through an assumed sector of the unwrapped pattern,
+  a motif slid off the cloth near the back seam where the unwrap bends.
+- **Likeness of a real person from photographs.** Photos of a real person, and textures or shapes
+  derived from them, stay on the user's machine. Keep them out of uploads, public repositories and
+  third-party generators unless the user says otherwise. Measure before changing anything, each
+  measure run on the photo and on renders through the photo's fitted camera under a light fitted
+  to the photo:
+  - detector landmarks per feature, after aligning on the eye corners and the nose;
+  - colours of the same landmark-cut regions;
+  - the face's outline from a segmenter, as width at each height (landmarks said a jaw was right
+    while the outline showed it 3 to 14 percent wide: the user saw "the same face");
+  - the hairline, measured with the hair on by segmentation, as height above the eye line (a
+    brightness test counted painted roots as hair and passed a forehead 13 to 27 percent too big);
+  - proportions across all the photos.
 
-Realism checklist for the close-up review (SKILL.md gate protocol step 4):
+  Several things pull against the likeness:
+  - **Recognition scores.** A recognition model's score (OpenCV SFace) is a fourth opinion only:
+    lighting dominates it, then expression (a laughing face scores far below the same face at
+    rest), and it does not see hair.
+  - **Moving landmarks.** Detector landmarks are not rigid: a laugh drops the brow points, a squint
+    moves the eye corners. Anchor on the eye corners and nose, cap any landmark-driven deformation,
+    and never take head pitch from them.
+  - **Colour.** A photo named "the authority" is the authority for shape, not automatically for
+    colour. Red hair photographed brown in shade was recoloured brown and had to go back. Check a
+    colour taken from one photo against the other references, and sample hair in dark, middle and
+    light thirds: shadows reflect the sky.
+  - **Ears.** Hair over the ears changes the face's read as much as the face does. With the ears
+    bare the outline was 20 percent wider at ear height.
+  - **Lab poses.** A lab that tries variants must build on the build's own pose: one left the rig
+    in a photo preset with the head turned 15 degrees, and five rounds of fitting were void. Run a
+    lab's result through the real build once before trusting the loop.
+  - **Heads from other tools** (Character Creator Headshot, FaceBuilder) carry the photo's
+    expression in their shape and their texture. Compare like with like (the model wearing its own
+    version of that expression; lids, lips and the mouth's interior left out of the registration).
+    Judge a transfer by the photograph: the score with a region-by-region ablation, the outline,
+    the landmarks, and the result at full zoom in the real-time viewer. Ship the evidence-backed
+    head and give the reference shape as a morph slider, saying that it carries no texture: a user
+    expected the slider to bring the reference's skin too.
+  - **A pose to match one photo.** Close the fit through the detector: pose, render through the
+    fitted camera, run the same detector on the render, use the difference as each landmark's
+    offset, refit; two to four rounds. Its depth for a limb can have the wrong sign, so read the
+    scene first (floor lines, what occludes what) and give depth as hints. Read hidden feet and both
+    hands off the picture by hand, and set the fingers in absolute angles.
+
+  Keep the previous version as a snapshot before each likeness round, and state the scores
+  honestly when they do not move.
+- **Eyes in real-time renderers.** The cornea shell's tight curvature makes the catchlights. With
+  the shell hidden and a clear coat on the eyeball instead, the light's reflection fell under the
+  upper lid on the larger sphere and the eyes went dead in the review page. An alpha-blended shell
+  dims them, because opacity scales the reflection. Keep the shell (transmission and clear coat),
+  give the eyeball a soft dielectric gloss of its own for a renderer that hides the shell, and say
+  in the manifest when to hide it. Crop both eyes from a review-page capture before and after any
+  eye material change.
+- **MakeHuman (MPFB) bodies.** Traps met on that base:
+  - Its bind hands are curled, fanned and thumb-out, and its game rig binds the elbows bent about
+    40 degrees. Set fingers in absolute angles (rigging-animation.md section 3) and reach straight
+    arms with a total-bend parametrisation (section 5.1). Each finger bone's X is its hinge within
+    about 10 degrees, with +X flexing on both sides; Y and Z turns mirror between sides, so solve by
+    measuring, not by sign.
+  - Its stock mouth makes smiles look wrong. The teeth texture is grey with pink painted on the
+    tooth necks, the teeth sit 4 to 6 mm behind the lips, the gums cover half of each crown, and
+    the incisors' edge sits above the lip line. Fix those before touching lip keys. Its gum roots
+    come out through the skin under the lower lip at full jaw open: keep them under it per key.
+  - Its ARKit-style face units push the lower lid through the eyeball (rigging-animation.md section
+    2, shape keys).
+  - `add_builtin_rig` repoints the body's Armature modifier at the rig it adds (section 2 there).
+- **Hair cards.** Cards built along a strand groom's guides:
+  - Wind each card to face out of the hair mass (combed cards away from the scalp, curl ribbons out
+    of their coil), with explicit normals. Cards seen from their back render dark and
+    over-saturated: Blender's back-face branch and glTF viewers' flipped normals. Check the winding
+    before recolouring an atlas that is already right.
+  - Smooth a card's path on the head, not in space: smooth the direction from the head's centre
+    and the height over the scalp separately, then put the line back on the scalp. Laplacian
+    smoothing in space pulled a third of the swept side's cards under the skin for their first
+    centimetres.
+  - Measure the cards per card before guessing: height over the scalp along the path, the share of
+    stations a clip test rejects, the width kept. Count what a "pick" loop actually returned.
+  - Keep a hairline clip local. One that also rejected ears, nape and the skin in front of the ears
+    cut every card off where it left the scalp, a ladder of plank ends at the sides.
+  - Hair combed away from its roots (a side parting) shows every card's beginning. Give every layer
+    whole soft-edged tiles and the hairline its own row of short narrow cards. Stop the scalp shell
+    a couple of centimetres inside the hairline and leave it out along an open parting: an
+    alpha-tested shell reads as a flat glossy patch in a real-time renderer wherever nothing lies
+    over it, which the path tracer does not show.
+  - Paint the roots by the groom's own root density (roots per area of skin, blurred a few mm), in
+    a darker shade of the cards' colour; any separate rule for where the paint ends shows as a
+    ruled edge. Roots on the parting line go to one side, with a floor on the sideways direction in
+    front, or a ridge runs along the parting like a plait's seam.
+  - Cut the cards' specular hard: on a card a highlight is a veil over the whole sheet, and it turned
+    dark brown hair ash grey under a studio rig.
+  - Cycles renders stacked alpha cards black once a ray passes `transparent_max_bounces` (default
+    8), as black tufts; raise it (64). Lashes as alpha-tested cards were black clumps in three.js;
+    alpha-blend them.
+  - A seeded generator (cards, strands, scatter) redraws everything when its input mesh moves by
+    float noise: re-applying idempotent face edits moved every head vertex about 1e-7 m and every
+    card moved, though the user had approved the old draw. Keep the approved draw's inputs (posed
+    body, bone matrices, colliders) and draw on them while the live ones are within a tolerance.
+    Compare per-part counts and positions with the approved draw after any rebuild. Remove pieces
+    after generation, so the random stream is unchanged.
+  - Look in the real-time viewer from the front, both sides, above and behind, and once with the
+    hair hidden to see the scalp paint alone.
+
+Realism checklist for the close-up review (SKILL.md gate protocol step 4), for the parts the
+asset has:
 - **Face:** proportions against the blueprint; eyes with sclera and iris set behind the lids; nose,
   lips and chin from the fit; no faceting at the silhouette.
+- **Eyes:** a catchlight in each eye in the real-time viewer as well as the path tracer.
 - **Ears:** helix, antihelix and lobe; not a folded blob.
 - **Hair and beard:** volume at the hairline and jaw; no painted-flat scalp, bald band or combed
-  streaks at the crown.
+  streaks at the crown. Cards face out of the mass; no flat patch at the hairline or the parting
+  from the front, the sides, above or behind.
 - **Hands:** finger lengths and joints; knuckles; glove thickness. A grip closes round the handle
-  with every phalanx on it, not only the fingertips, and the thumb over the fingers.
+  with every phalanx on it, not only the fingertips, and the thumb over the fingers. A resting
+  hand has its fingers set from the rest and its thumb bent, the pad on the curled index finger,
+  with no joint bent backwards or twisted in any frame.
 - **Feet:** length about 15 percent of height; a last shape; sole, heel and toe spring; the
   foot on the ground.
-- **Knees and elbows:** shaped cops, no domes; nothing clipping at full bend.
+- **Knees and elbows:** nothing clipping at full bend; armour cops shaped, no domes.
 - **Neck and cape:** the cloth hangs in folds; no armour through it at rest or in poses.
+- **Seams and layers:** every seam between garment pieces closed, seen from above and below as
+  well as level; no under-layer showing through a tight edge.
+- **Skirts and dresses:** in the kicks, leaps and sits, no leg through the cloth and no cloth
+  hanging in the air over a raised thigh.
 - **Attachments:** nothing hovering; every strap, buckle, pouch, handle and hanger touches its
   holder.
 - **Weapons:** in the hand in every pose; clear of the body, scabbard and ground; stowed gear
@@ -300,14 +419,18 @@ repeated straps, buckles and chain; consistent texel density across the body; ro
 skin, hair, woven cloth, worn leather, corroded metal each with a believable roughness range.
 
 Articulation: humanoid deformation skeleton (see rigging-animation.md), sockets for both hands,
-weapon tip, back mount, head, chest and feet.
+head, chest and feet, plus the weapon tip and back mount for a character that carries them. The
+brief's NEEDS line picks the rest (rigging-animation.md section 0).
 
 Acceptance specifics:
 - Role and silhouette readable at gameplay size in greyscale.
 - Feet contact the floor.
-- Hands grip their weapon: fingers closed on the handle's mesh, the thumb over them.
+- Hands that hold something grip it: fingers closed on the handle's mesh, the thumb over them.
+  Resting hands pass the per-frame finger check.
 - Shoulders, elbows, hips and knees deform cleanly on the extreme-pose sheet.
-- No holes between costume pieces in any pose.
+- No holes between costume pieces in any pose, from above and below as well as level; each sewn
+  seam's opening measured per frame.
+- A skirt or dress over raised legs neither clips nor floats (rigging-animation.md section 6.2).
 - The realism checklist passes on the close-ups.
 
 ## 3. Creatures
@@ -340,6 +463,24 @@ unique space for the head.
 Articulation: quadruped or winged rig family, sockets for mouth (breath, bite origin), eyes,
 feet, saddle or rider point, and effect points on chest or back. Mouth socket forward must agree
 with the attack direction.
+
+Rigging a quadruped to clips from a motion library (rigging-animation.md sections 1, 2, 5.1 and
+5.2):
+- Place the spine, girdle and neck joints against the library's rig, scaled, by mesh landmarks,
+  before any weights.
+- The trunk hangs between the shoulder blades. Give the breast's skin (in front of and between the
+  shoulder joints) mostly to the blades, and pitch each blade with its standing leg. With the
+  forechest on the ribcage alone, that skin went back with the ribcage when the trunk tipped up
+  over the standing forelegs in a sit, and the shoulders stood out as lobes.
+- A planted paw at full stretch takes a pastern lean and a toe roll.
+- The tail: read it against a symmetric reference pose (a reference caught in mid wag turned every
+  clip's tail), keep it out of the hindquarters by the skin's own triangles, and lay it where the
+  library's lies on the floor.
+- Mouth parts and the tail need their own per-frame tests on the export. Tests like these found the
+  tongue through the lower teeth and the mouth's floor, gums sliding over teeth, the tail through a
+  hind leg when lying down, and its root under the floor in a sit.
+- Judge the held poses (sit, lie, eat) in profile with bones, beside a photo of the animal. The
+  library's pose is not the target's.
 
 Acceptance specifics: gait-critical joints in the right place, wings fold and unfold without
 self-intersection, neck and jaw reach the reference action pose, silhouette readable at distance.
