@@ -7,10 +7,12 @@ blender --background --python scripts/validate.py -- \
   --blend CH_Knight/CH_Knight_master.blend --collections LOW,COLLISION,SOCKETS \
   --out CH_Knight/review/validate.json --budget-tris 60000 --max-influences 4 --require-uv
 
-FAIL: negative scale, unweighted or over-influenced vertices on a bound mesh, open collision
-proxies (COL_*), tri budget exceeded, missing UVs with --require-uv.
+FAIL: negative scale, unweighted or over-influenced vertices on a bound mesh, vertices sharing
+their weight between the root bone and other bones, open collision proxies (COL_*), tri budget
+exceeded, missing UVs with --require-uv.
 WARN: unapplied transforms, doubles, loose geometry, ngons, zero-area faces, .001 names,
-non-normalised weights, tiny weights, vertex groups with no bone, unparented sockets, and
+non-normalised weights, tiny weights, vertex groups with no bone, shape keys left on (they
+export as default weights), unparented sockets, and
 floating parts: per collection, every loose piece (mesh island or object) of the LOD0 meshes is
 linked to the pieces within --max-gap of it; pieces not connected to the largest group are
 reported with their gap (a shield handle not touching the board, plates hovering off a glove).
@@ -143,6 +145,10 @@ def mesh_checks(ob, a, dg, report):
         rec["info"]["shape_keys"] = len(me.shape_keys.key_blocks)
         if any(m.type not in ("ARMATURE",) for m in ob.modifiers):
             W("shape keys with other modifiers: glTF export cannot apply modifiers and keep morphs")
+        on = [k.name for k in me.shape_keys.key_blocks[1:] if abs(k.value) > 1e-4 and not k.mute]
+        if on:
+            W("shape keys left on (%s): the export writes their values as default weights (FBX DeformPercent, "
+              "glTF mesh weights), and engines show them at rest" % ", ".join(on[:6]))
 
     arm_mods = [m for m in ob.modifiers if m.type == "ARMATURE" and m.object]
     if arm_mods:
@@ -150,22 +156,30 @@ def mesh_checks(ob, a, dg, report):
         deform = {b.name for b in arm.data.bones if b.use_deform}
         vg_names = {vg.index: vg.name for vg in ob.vertex_groups}
         orphan = sorted(n for n in vg_names.values() if n not in deform and n not in arm.data.bones)
-        unweighted = over = unnorm = tiny = 0
+        roots = {b.name for b in arm.data.bones if b.parent is None}
+        unweighted = over = unnorm = tiny = root_shared = 0
         for v in me.vertices:
             ws = [(vg_names.get(g.group, ""), g.weight) for g in v.groups]
             ws = [(n, w) for n, w in ws if n in deform and w > 0.0]
             total = sum(w for _, w in ws)
             if total < 1e-6:
                 unweighted += 1
+            if len(ws) > 1 and any(n in roots and w >= 1e-4 for n, w in ws):
+                root_shared += 1
             if len(ws) > a.max_influences:
                 over += 1
             if total > 1e-6 and abs(total - 1.0) > 0.01:
                 unnorm += 1
             tiny += sum(1 for _, w in ws if w < 0.01)
         rec["info"]["skin"] = {"armature": arm.name, "unweighted": unweighted, "over_influences": over,
-                               "not_normalised": unnorm, "tiny_weights": tiny, "orphan_groups": orphan}
+                               "not_normalised": unnorm, "tiny_weights": tiny, "orphan_groups": orphan,
+                               "root_shared": root_shared}
         if unweighted:
             F("%d unweighted vertices" % unweighted)
+        if root_shared:
+            F("%d vertices share their weight between the root bone (%s) and other bones: the root stays at the "
+              "ground origin while the body moves, so they stretch toward it (seated soles pulled 48 mm)"
+              % (root_shared, ", ".join(sorted(roots))))
         if over:
             F("%d vertices exceed %d influences" % (over, a.max_influences))
         if unnorm:

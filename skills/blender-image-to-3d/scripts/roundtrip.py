@@ -9,8 +9,12 @@ blender --background --python scripts/roundtrip.py -- \
 
 Compare the report against asset-manifest.json: same tri counts per LOD, same bone names,
 same clip lengths, no missing images, height within 1 percent of the target.
-Measures and renders the bind pose (the importer leaves the first clip applied), and for glTF
-fails any clip whose first key is not at time 0.
+Measures and renders the bind pose (the importer leaves the first clip applied), for glTF
+fails any clip whose first key is not at time 0, and fails any shape key that arrives switched
+on (its value is the engine's default weight).
+Blender's importers convert units, so this cannot see an FBX's unit scale; when the file replaces
+one in an engine project, compare the two files' own UnitScaleFactor and root object scales
+(delivery-and-acceptance.md section 5).
 """
 import bpy, sys, os, math, json, argparse
 from mathutils import Vector
@@ -96,6 +100,14 @@ def main(a):
                                      "uv": bool(o.data.uv_layers), "materials": [m.name for m in o.data.materials if m],
                                      "skinned": any(m.type == "ARMATURE" for m in o.modifiers),
                                      "shape_keys": len(o.data.shape_keys.key_blocks) if o.data.shape_keys else 0})
+            # A shape key's value travels as its default weight (FBX DeformPercent, glTF mesh weights); engines
+            # show it at rest (Unity's Import Deform Percent). Keys driven by an imported clip are left out.
+            sk = o.data.shape_keys
+            if sk and not (sk.animation_data and sk.animation_data.action):
+                on = [(k.name, round(k.value, 3)) for k in sk.key_blocks[1:] if abs(k.value) > 1e-4]
+                if on:
+                    report["errors"].append("%s: %d shape keys arrive switched on, e.g. %s; the engine shows them at "
+                                            "rest (set every key's value to 0 before export)" % (o.name, len(on), on[:4]))
         elif o.type == "ARMATURE":
             report["armatures"].append({"name": o.name, "bones": [b.name for b in o.data.bones],
                                         "roots": [b.name for b in o.data.bones if b.parent is None]})

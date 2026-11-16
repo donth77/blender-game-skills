@@ -191,6 +191,16 @@ the mesh and breaks the rig relationship. Apply only the modifiers meant for the
 Fix deformation problems in this order: joint placement, topology, weights. Corrective shape
 keys are a targeted tool for a specific pose, not a substitute for a viable bind.
 
+**The root never deforms.** The root stays at the ground origin while the body moves. A vertex
+that shares its weight between the root and a limb is pulled toward the floor point once the limb
+leaves it.
+- A delivered character's shoes had 66 sole vertices with up to 7.8 % on the root.
+- Standing, squatting and kicking hid it, because the feet stayed over the origin.
+- Seated in VRChat (hips lowered, shins forward), the soles were dragged up to 48 mm out of shape.
+
+Drop the root from deforming weights and renormalise the rest. Weight the root only on a part that
+rides it whole: a vehicle body or a prop. `validate.py` fails a shared root weight.
+
 Rules that apply when the asset has the part:
 - **Garments on the layer under them.** A tight garment that pokes or gapes when the trunk turns
   takes its tight bands' weights from the layer right under them (the nearest points facing the
@@ -274,8 +284,10 @@ Before accepting a rig, render (review_render.py with `--action` and `--frame`) 
 worst poses the asset will actually hit and inspect every separate part together:
 
 Bipeds: arms overhead, forward reach, crossed-arm cast, deep elbow and knee bend, hip flexion,
-full stride, wide stance, bow draw or two-handed grip, torso twist, crouch, death pose. In a
-skirt or dress, add the high kick, leap, side kick, kick behind and deep squat.
+full stride, wide stance, bow draw or two-handed grip, torso twist, crouch, death pose, and
+seated on a chair. Social platforms seat every avatar, and a seat carries the feet away from the
+origin, which a crouch does not. In a skirt or dress, add the high kick, leap, side kick, kick
+behind and deep squat.
 Quadrupeds: full stride at gallop, pounce crouch, rear, head turn, bite gape, tail curl, and the
 held poses (sit, lie down, eat).
 Winged: full fold, full spread, downstroke, banked turn.

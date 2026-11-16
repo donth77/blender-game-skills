@@ -37,6 +37,13 @@ user's viewport disagree.
   places, under a dress cut for the slim body. After a key-only edit, copy the basis into `co`
   before anything else reads the mesh, and read rest positions from `key_blocks[0]`. After a body
   edit, compare `co` with the basis (max difference) and a delivered body with its source.
+- `ob.shape_key_add()` returns the new key at value 1.0 in 5.2.2. That holds for the Basis too,
+  and with `from_mix` either way. Exporters write each key's value as its default weight: FBX
+  `DeformPercent`, glTF mesh `weights`. Unity then takes that as the renderer's starting weight
+  (Import Deform Percent). Ten viseme keys added by an export script held a character's mouth wide
+  open in Unity. Set `key.value = 0.0` on every key you add.
+  - `validate.py` warns on keys left on;
+  - `roundtrip.py` fails keys that arrive switched on.
 - `Bone.x_axis` and `Bone.z_axis` are in the parent bone's space; armature-space axes are the
   columns of `bone.matrix_local`. A one-axis Copy Rotation follows the Euler angle of that axis,
   not a swing-twist split (rigging-animation.md section 1).

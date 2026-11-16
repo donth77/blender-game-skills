@@ -45,11 +45,11 @@ as inferred. Say so when a single image forces inference; do not present a guess
 | `scripts/review_render.py` | clay / silhouette / wire / checker / material renders from fixed views, the reference-matched camera, gameplay pixel size, turntables, posed frames |
 | `scripts/compose_review.py` | compare sheet (reference, render, overlay, gameplay strip) plus silhouette IoU and width-profile numbers; plain Python with Pillow |
 | `scripts/world_gate.py` | world-registered silhouette IoU for orthographic reference views: the camera covers the reference matte's exact world window, so scale and placement errors count |
-| `scripts/validate.py` | topology, transforms, UVs, weights, armature, sockets, colliders, naming, tri budget, floating parts and declared attachments (`--attachments`); exit 1 on FAIL |
+| `scripts/validate.py` | topology, transforms, UVs, weights (including weight shared with the root bone), shape keys left on, armature, sockets, colliders, naming, tri budget, floating parts and declared attachments (`--attachments`); exit 1 on FAIL |
 | `scripts/pose_overlap.py` | interpenetration on the extreme-pose sheet: body pairs against the bind position, weapons and carried gear counted absolutely |
 | `scripts/bake_maps.py` | normal and AO from HIGH to LOW, base colour, roughness, metallic; rebuilds delivery materials |
 | `scripts/export_delivery.py` | GLB/FBX export with asset-manifest.json and animation-contract.json |
-| `scripts/roundtrip.py` | imports the export into a blank Blender, reports what arrived in the bind pose, fails glTF clips that do not start at time 0, renders a check |
+| `scripts/roundtrip.py` | imports the export into a blank Blender, reports what arrived in the bind pose, fails glTF clips that do not start at time 0 and shape keys that arrive switched on, renders a check |
 
 `assets/grasp_tools.py` holds the hand tools for Phase 6: the grip seat (where a handle rests in
 the open hand), the grasp (every phalanx wrapped onto the weapon's mesh, with a per-segment gap
@@ -423,11 +423,18 @@ $BLENDER_BIN --background --python scripts/roundtrip.py -- --file CH_Knight/expo
   --out CH_Knight/review/09_roundtrip --expect-height 1.85
 ```
 
-Gate: roundtrip exit 0 (tri counts per LOD, bone names, clip lengths, images all match the
-manifest; height within 1 percent, measured in the bind pose; nothing below the ground plane;
-every glTF clip's first key at time 0), and the roundtrip clay render matches the Phase 3 clay
-render. Then import into a clean project of the target engine if one is available and play every
-clip with the real weapon or garment combination.
+Gate: roundtrip exit 0, and the roundtrip clay render matches the Phase 3 clay render. Exit 0 means:
+- tri counts per LOD, bone names, clip lengths and images all match the manifest;
+- the height is within 1 percent, measured in the bind pose;
+- nothing is below the ground plane;
+- every glTF clip's first key is at time 0;
+- no shape key arrives switched on.
+
+Then import into a clean project of the target engine if one is available and play every clip with
+the real weapon or garment combination. A Blender round trip cannot see an FBX's unit scale, and
+the engine reads more than Blender does: viseme slots, eye bones and stored humanoid skeletons.
+For Unity or VRChat, or when the export replaces a file an engine project already uses, read the
+Unity notes in `references/delivery-and-acceptance.md` section 5 before exporting.
 
 For a web target, hand over a small three.js viewer. It loads the exported GLBs, attaches the
 weapons through the sockets with identity transforms, and scrubs the pose-test action exported on

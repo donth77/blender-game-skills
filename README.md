@@ -226,11 +226,11 @@ need them to rerun a gate yourself or to work without an agent.
 | `review_render.py` | Blender | Clay, silhouette, wire, checker or material renders from fixed views and a reference-matched camera, at gameplay size, as turntables or in posed frames. |
 | `compose_review.py` | Python 3 + Pillow | Compare sheet (reference, render, overlay, gameplay strip) with silhouette IoU and a ten-band width profile. |
 | `world_gate.py` | Blender | World-registered silhouette IoU against a cleaned orthographic reference matte, so scale and placement errors count. |
-| `validate.py` | Blender | Checks topology, transforms, UVs, weights, armature, sockets, colliders, naming and the triangle budget; reports floating parts and, with `--attachments`, every part not touching its declared holder; exits 1 on any FAIL. |
+| `validate.py` | Blender | Checks topology, transforms, UVs, weights (including weight shared with the root bone), shape keys left on, armature, sockets, colliders, naming and the triangle budget; reports floating parts and, with `--attachments`, every part not touching its declared holder; exits 1 on any FAIL. |
 | `pose_overlap.py` | Blender | Counts interpenetration on the extreme-pose sheet: body and garment pairs against the bind position, weapons and carried gear absolutely (only a glove on its own grip is allowed). |
 | `bake_maps.py` | Blender (Cycles) | Bakes normal and AO from HIGH to LOW, plus base colour, roughness and metallic; can rebuild export-ready materials. |
 | `export_delivery.py` | Blender | Exports GLB, glTF or FBX with `asset-manifest.json` and `animation-contract.json`. |
-| `roundtrip.py` | Blender | Imports the export into an empty scene, reports what arrived and renders a check frame. |
+| `roundtrip.py` | Blender | Imports the export into an empty scene, reports what arrived and renders a check frame; fails shape keys that arrive switched on. |
 
 `assets/build_template.py` is the template for the per-phase build scripts. Each copy opens the
 master file, deletes the objects it owns, rebuilds them and saves, so any phase can be rerun.

@@ -236,6 +236,56 @@ Viewer traps:
 
   Capture the face, the open mouth and the eyes in the viewer, not only in Cycles.
 
+For a Unity target, and for VRChat avatars, which are built in Unity:
+- **The creator's Unity version is fixed.** Build VRChat content in the Unity version the Creator
+  Companion installs: 2022.3.22f1 for avatars in November 2026, while the client already ran Unity
+  6. The newest Unity, which Unity Hub installs by default, does not upload.
+- **Match the unit scale of a file you replace.**
+  - Blender's FBX default (Apply Scalings: All Local) writes UnitScaleFactor 1 (centimetres) and
+    scales the root objects 100×.
+  - `apply_scale_options="FBX_SCALE_ALL"` writes UnitScaleFactor 100 (metres), with every object at
+    scale 1.
+  - A model's `.meta` keeps the humanoid skeleton Unity sampled from the first file
+    (`humanDescription.skeleton`), as local positions in that file's frame.
+
+  A re-export in the other convention, dropped over a delivered avatar's FBX, collapsed every bone
+  about 100× in VRChat: the body crumpled into a ball. Blender's importer converts both to metres,
+  so a Blender round trip compared the two files as identical. Read `UnitScaleFactor` and the root
+  objects' `Lcl Scaling` from both files themselves.
+- **Moved bones need the stored skeleton updated too.** Examples are eye bones moved to the eyeball
+  centres and a 7 mm lift onto the floor.
+  - That skeleton can also hold an Enforce T-Pose: upper arms raised 45° from an A-pose rest.
+    Rebuilding the rig (Generic, then Humanoid) drops it.
+  - Keep the stored rotations, and take positions and scales from the new file.
+  - Prove the conversion first by recomputing the stored skeleton from the original file. Positions
+    are (-x, y, z) × UnitScaleFactor / 100. For rotations, build the FBX Euler XYZ as qz·qy·qx,
+    then write it as (x, -y, -z, w).
+- **Shape key values arrive as default weights** (Unity's Import Deform Percent). See
+  blender-5-notes.md section 1.
+- **VRChat lip sync needs all 15 viseme slots filled with distinct blend shapes.**
+  - One empty slot switches lip sync off, and the client logs `Avatar Descriptor has invalid Blend
+    Shape []`.
+  - From five vowel shapes (A I U E O), mix the other ten, with I standing in for CH: for example
+    kk = 0.7 A + 0.4 I.
+  - sil and pp stay near zero, but must move a vertex or the FBX exporter drops them.
+- **The descriptor stores eyelid blend shapes by index and visemes by name.**
+  - Append new shapes after the existing ones, so the eyelid indices hold.
+  - Its Looking Up and Looking Down slots must read None (-1). Index 0 is the first blend shape,
+    here the A viseme, and the eyelid system then held the mouth.
+- **Eye Look's rotation states are the eye bones' local rotations, and the SDK never fills them.**
+  - Left at the all-zero quaternion, the eyes turned away and showed white.
+  - Looking Straight is the eye bone's rest local rotation. The others turn that rest about the
+    head's axes; 12° up and down and 16° to the sides read naturally.
+  - The eye bones must sit at the eyeball centres. Turned about a bone 2 cm behind the ball, an eye
+    slides out from under the lids.
+- **Check which upload is being judged.** Two reports of an already fixed bug came from an avatar
+  uploaded before the fix.
+  - Unity's `Editor.log` lists every build (`Bundle Name: prefab-id-v1_<avatar id>_<version>`).
+  - VRChat's `output_log_*.txt` (`%USERPROFILE%\AppData\LocalLow\VRChat\VRChat`) records each avatar
+    load and any descriptor errors.
+  - A broken avatar can hide the in-game menu. Build & Test needs that menu to switch avatars, so it
+    is no way back: upload the fix and restart the client.
+
 Manifest (asset-manifest.json, written by export_delivery.py): units and axes for authoring and
 export, target height, bounds, files per LOD with tri counts, materials, textures with colour
 spaces, texture contract and packing, skeleton with deform bone names and roots, sockets with
